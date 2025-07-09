@@ -17,8 +17,8 @@ step4 <- function(obj, sce, non_zero_num, lower_quantile, upper_quantile, IQR_co
   IQR_val <- Q3 - Q1
   inlier <- pseudotime >= (Q1 - IQR_coefficient * IQR_val) & pseudotime <= (Q3 + IQR_coefficient * IQR_val)
   
-  keep_cells <- intersect(gene_list, names(pseudotime)[inlier])
-  obj <- subset(obj, cells = keep_cells)
+  keep_cells <- names(pseudotime)[inlier]
+  obj_sub <- subset(obj, cells = keep_cells, features = gene_list)
   return(list(
     obj = obj_sub,
     Q1 = Q1,
