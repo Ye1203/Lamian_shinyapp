@@ -6,13 +6,15 @@ library(slingshot)
 library(harmony)
 library(dplyr)
 library(tidyr)
-
+library(rhandsontable)
 source("step1.R")
 source("step3.R")
 source("step4.R")
+source("step5.R")
 
 ui <- fluidPage(
-  titlePanel("Multi-step Preprocessing & Slingshot Analysis"),
+  titlePanel("Lamian - Waxman's lab"),
+  tags$h4("produced by Bingtian Ye(btye@bu.edu)"),
   tabsetPanel(
     tabPanel("Data preprocessing",
              fluidRow(
@@ -31,7 +33,7 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   current_step <- reactiveVal(1)
-  total_steps <- 6
+  total_steps <- 5
   
   seuratObj <- reactiveVal(NULL)
   processedObj <- reactiveVal(NULL)
@@ -61,7 +63,7 @@ server <- function(input, output, session) {
           column(8, textInput("data_path", "Enter path to RDS file", value = "")),
           column(4, br(), actionButton("read_btn_ui", "READ"))
         ),
-        checkboxInput("do_harmony", "Perform Harmony correction", FALSE),
+        checkboxInput("do_harmony", "Perform Harmony correction", TRUE),
         conditionalPanel(
           condition = "input.do_harmony == true",
           uiOutput("harmony_ui")
@@ -114,9 +116,8 @@ server <- function(input, output, session) {
       fluidRow(
         column(4,
                numericInput("non_zero_num", "Minimum Non-zero Cells:", value = 100, min = 1),
-               sliderInput("lower_quantile", "Lower Quantile:", min = 0, max = 1, value = 0.1),
-               sliderInput("upper_quantile", "Upper Quantile:", min = 0, max = 1, value = 0.9),
-               numericInput("IQR_coefficient", "IQR Coefficient:", value = 1.5, min = 0),
+               numericInput("lower_quantile", "Lower Quantile:", min = 0, max = 1, value = 0.001, step = 0.001),
+               numericInput("upper_quantile", "Upper Quantile:", min = 0, max = 1, value = 0.999, step = 0.001),
                hr(),
                tags$div(strong("BEFORE FILTERING"), style = "margin-bottom:5px;"),
                tags$div("GENE NUMBER: ", span(textOutput("gene_num_before"), style = "color:red;font-weight:bold;")),
@@ -134,8 +135,28 @@ server <- function(input, output, session) {
                plotOutput("pseudotime_boxplot")
         )
       )
-    } else {
-      h3(paste("Step", step, "- To be implemented"))
+    } else if (step == 5) {
+      fluidRow(
+        column(5,
+               h3("Lamian Parameters"),
+               textInput("output_path", "Output file path:", value = ""),
+               hr(),
+               h4("Design Matrix Settings"),
+               numericInput("design_ncol", "Number of columns:", 
+                            min = 1, max = 30, value = 2),
+               actionButton("generate_design", "Generate Design Matrix",  class = "btn btn-primary"),
+               hr(),
+               numericInput("max_knot", "Maximum knot for spline:", min = 4, value = 10),
+               numericInput("perm_iter", "Permutation iterations:", min = 11, value = 100),
+               hr(),
+               textInput("project_name", "Project name:", value = ""),
+               textInput("email", "Email address:", value = ""),
+               actionButton("run_lamian", "Run Lamian Analysis", 
+                            class = "btn btn-primary")
+        ),
+        column(7,
+               rHandsontableOutput("design_matrix"))
+      )
     }
   })
   
@@ -200,7 +221,7 @@ server <- function(input, output, session) {
   })
   
   output$sample_subset_ui <- renderUI({
-    dt <- data_temp()
+    dt <- processedObj()
     req(dt, input$sample_select)
     vals <- sort(unique(dt@meta.data[[input$sample_select]]))
     selected_vals <- isolate(input$sample_subset_vals)
@@ -209,7 +230,7 @@ server <- function(input, output, session) {
   })
   
   output$cluster_subset_ui <- renderUI({
-    dt <- data_temp()
+    dt <- processedObj()
     req(dt, input$cluster_select)
     vals <- sort(unique(dt@meta.data[[input$cluster_select]]))
     selected_vals <- isolate(input$cluster_subset_vals)
@@ -314,17 +335,20 @@ server <- function(input, output, session) {
     non_zero_num <- input$non_zero_num
     lower_quantile <- input$lower_quantile
     upper_quantile <- input$upper_quantile
-    IQR_coefficient <- input$IQR_coefficient
     if (upper_quantile <= lower_quantile) {
       showModal(modalDialog(title = "Error", "Upper quantile must be greater than lower quantile.", easyClose = TRUE))
       return()
     }
     showModal(modalDialog(title = "Please wait", "Filtering...", footer = NULL, easyClose = FALSE))
     tryCatch({
-      res <- step4(obj, sce, non_zero_num, lower_quantile, upper_quantile, IQR_coefficient)
+      res <- step4(obj, sce, non_zero_num, lower_quantile, upper_quantile)
       step4_result(res)
       filter_run_done(TRUE)
       obj_filtered_temp(res$obj)
+      
+      updateNumericInput(session, "lower_quantile", value = res$lower_quantile)
+      updateNumericInput(session, "upper_quantile", value = res$upper_quantile)
+      
       removeModal()
       showNotification("Filtering completed.", type = "message")
     }, error = function(e) {
@@ -332,6 +356,39 @@ server <- function(input, output, session) {
       showModal(modalDialog(title = "Error", paste0("Filtering error:\n", e$message), easyClose = TRUE))
       filter_run_done(FALSE)
     })
+  })
+  
+  # design matrix
+  design_matrix <- reactiveVal(NULL)
+  observeEvent(input$generate_design, {
+    n_data_cols <- input$design_ncol
+    if (is.null(n_data_cols) || n_data_cols < 1) {
+      showNotification("Number of data columns must be ≥1", type = "error")
+      return()
+    }
+    
+    # Get sample names from the processed data
+    sample_names <- unique(processedObj()@meta.data[[input$sample_select]])
+    
+    nr <- length(sample_names)
+    # Create data frame with Sample column
+    df <- data.frame(
+      Sample = sample_names,
+      stringsAsFactors = FALSE
+    )
+    
+    # Add data columns with specific naming convention
+    if (n_data_cols >= 1) {
+      df[["test.variable"]] <- rep(FALSE, nr)  # First column after Sample
+      
+      if (n_data_cols > 1) {
+        # Add confounder columns
+        for (i in 1:(n_data_cols-1)) {
+          df[[paste0("confounder", i)]] <- rep(FALSE, nr)
+        }
+      }
+    }
+    design_matrix(df)
   })
   
   output$removed_cells_text <- renderText({
@@ -387,18 +444,14 @@ server <- function(input, output, session) {
     df_plot <- bind_rows(df, df_all)
     Q1_all <- quantile(df$pseudotime, probs = input$lower_quantile, na.rm = TRUE)
     Q3_all <- quantile(df$pseudotime, probs = input$upper_quantile, na.rm = TRUE)
-    IQR_all <- Q3_all - Q1_all
     
     x_min <- 0
     x_max <- max(df$pseudotime, na.rm = TRUE)
     
-    
-    lower_bound <- max(x_min, Q1_all - input$IQR_coefficient * IQR_all)
-    upper_bound <- min(x_max, Q3_all + input$IQR_coefficient * IQR_all)
     ggplot(df_plot, aes(x = pseudotime, y = sample_id)) +
       geom_boxplot(outlier.shape = 1, fill = "lightblue") + 
-      geom_vline(xintercept = lower_bound, color = "red", linetype = "dashed") +
-      geom_vline(xintercept = upper_bound, color = "red", linetype = "dashed") +
+      geom_vline(xintercept = Q1_all, color = "red", linetype = "dashed") +
+      geom_vline(xintercept = Q3_all, color = "red", linetype = "dashed") +
       scale_x_continuous(limits = c(x_min, x_max)) +
       xlab("Pseudotime") +
       ylab("Sample ID") +
@@ -407,6 +460,86 @@ server <- function(input, output, session) {
         axis.text.x = element_text(size = 15),  # customize x-axis text size
         axis.text.y = element_text(size = 15)   # y-axis text size
       )
+  })
+  
+  output$design_matrix <- renderRHandsontable({
+    df <- design_matrix()
+    req(df)
+    
+    rh <- rhandsontable(df, useTypes = TRUE, stretchH = "all") %>%
+      hot_col("Sample", readOnly = TRUE)  # Make Sample column uneditable
+    
+    if (ncol(df) > 1) {
+      # Set all columns except Sample as checkboxes
+      for (colname in colnames(df)[-1]) {
+        rh <- hot_col(rh, colname, type = "checkbox")
+      }
+    }
+    rh
+  })
+  
+  observeEvent(input$design_matrix, {
+    df <- hot_to_r(input$design_matrix)
+    design_matrix(df)
+  })
+  
+  observeEvent(input$run_lamian, {
+    req(processedObj(), step3_result(), design_matrix())
+    
+    # Get all parameters
+    output_file_path <- input$output_path
+    design <- hot_to_r(input$design_matrix)
+    maximumknotallowed <- input$max_knot
+    permuiter <- input$perm_iter
+    project_name <- input$project_name
+    email_address <- input$email
+    
+    # Validate inputs
+    if (nchar(project_name) == 0) {
+      showNotification("Please enter a project name", type = "error")
+      return()
+    }
+    
+    if (nchar(email_address) == 0 || !grepl("@", email_address)) {
+      showNotification("Please enter a valid email address", type = "error")
+      return()
+    }
+    
+    showModal(modalDialog(
+      title = "Running Lamian Analysis",
+      "This may take several minutes...",
+      footer = NULL,
+      easyClose = FALSE
+    ))
+    
+    tryCatch({
+      design_conv <- design
+      if (ncol(design_conv) > 1) {
+        for (i in 2:ncol(design_conv)) {
+          if (is.logical(design_conv[[i]])) {
+            design_conv[[i]] <- as.integer(design_conv[[i]])
+          }
+        }
+      }
+      
+      step5_result <- step5(
+        data = processedObj(),
+        sce = step3_result()$sce,
+        output_file_path = output_file_path,
+        design = design_conv,
+        maximumknotallowed = maximumknotallowed,
+        permuiter = permuiter,
+        project_name = project_name,
+        email_address = email_address
+      )
+      removeModal() 
+      
+      showNotification("Lamian analysis completed.", type = "message")
+      
+    }, error = function(e) {
+      removeModal()
+      showModal(modalDialog(title = "Error", paste0("Lamian error:\n", e$message), easyClose = TRUE))
+    })
   })
   
   output$nav_buttons <- renderUI({
@@ -441,18 +574,8 @@ server <- function(input, output, session) {
       NULL
     } else if (step == 4) {
       NULL
-    } else if (step == total_steps) {
-      fluidRow(
-        column(12,
-               actionButton("start_lamian_btn", "Start Lamian")
-        )
-      )
-    } else {
-      fluidRow(
-        column(12,
-               actionButton("next_btn", "Next step")
-        )
-      )
+    } else if (step == 5) {
+      NULL
     }
   })
   
@@ -478,8 +601,6 @@ server <- function(input, output, session) {
       req(filter_run_done())
       res <- step4_result()
       if (!is.null(res)) processedObj(res$obj)
-      current_step(step + 1)
-    } else if (step < total_steps) {
       current_step(step + 1)
     }
   })

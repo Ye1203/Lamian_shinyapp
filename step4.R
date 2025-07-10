@@ -1,7 +1,5 @@
 
-step4 <- function(obj, sce, non_zero_num, lower_quantile, upper_quantile, IQR_coefficient){
-  obj <<- obj
-  sce <<- sce
+step4 <- function(obj, sce, non_zero_num, lower_quantile, upper_quantile){
   expr <- GetAssayData(obj, layer = "data")
   originial_cells_num <- ncol(expr)
   expr_count <- rowSums(expr > 0)
@@ -14,15 +12,13 @@ step4 <- function(obj, sce, non_zero_num, lower_quantile, upper_quantile, IQR_co
   pseudotime <- pseudotime[cell_list]
   Q1 <- quantile(pseudotime, lower_quantile, na.rm = TRUE)  # swapped upper/lower quantile
   Q3 <- quantile(pseudotime, upper_quantile, na.rm = TRUE)
-  IQR_val <- Q3 - Q1
-  inlier <- pseudotime >= (Q1 - IQR_coefficient * IQR_val) & pseudotime <= (Q3 + IQR_coefficient * IQR_val)
+  inlier <- pseudotime >= Q1 & pseudotime <= Q3
   
   keep_cells <- names(pseudotime)[inlier]
   obj_sub <- subset(obj, cells = keep_cells, features = gene_list)
   return(list(
     obj = obj_sub,
-    Q1 = Q1,
-    Q3 = Q3,
-    IQR = IQR_val
+    lower_quantile = lower_quantile,
+    upper_quantile = upper_quantile
   ))
 }

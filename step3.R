@@ -1,7 +1,7 @@
 
 step3 <- function(obj, sample, clusters, reduction, start_cluster) {
-  expr_mat <- GetAssayData(obj, slot = "data")
-  sce <<- SingleCellExperiment(
+  expr_mat <- GetAssayData(obj, layer = "data")
+  sce <- SingleCellExperiment(
     assays = list(logcounts = expr_mat))
   sce$sample <- obj@meta.data[[sample]]
   sce$cluster <- obj@meta.data[[clusters]]
