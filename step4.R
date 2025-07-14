@@ -1,11 +1,13 @@
 
-step4 <- function(obj, sce, non_zero_num, lower_quantile, upper_quantile){
+step4 <- function(obj, sce, non_zero_num, lower_quantile, upper_quantile, selected_lineage){
   expr <- GetAssayData(obj, layer = "data")
+  
   originial_cells_num <- ncol(expr)
   expr_count <- rowSums(expr > 0)
   gene_list <- names(expr_count)[expr_count >= non_zero_num]
   
-  pseudotime <- slingPseudotime(sce, na = TRUE)[,1]
+  pseudotime <- slingPseudotime(sce, na = TRUE)[,selected_lineage]
+  pseudotime <- pseudotime[!is.na(pseudotime)]
   names(pseudotime) <- colnames(sce)
   cell_list <- intersect(colnames(obj),names(pseudotime)[!is.na(pseudotime)])
   

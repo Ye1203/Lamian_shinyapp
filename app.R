@@ -98,12 +98,15 @@ server <- function(input, output, session) {
       reductions <- names(obj@reductions)
       is_harmony <- isTRUE(input$do_harmony)
       default_reduction <- if (is_harmony && "harmony" %in% reductions) "harmony" else "pca"
+      
       fluidRow(
         column(4,
                selectInput("step3_reduction", "Select reduction:", choices = reductions,
                            selected = default_reduction),
                uiOutput("start_cluster_ui"),
                actionButton("run_sling_btn", "RUN SLINGSHOT"),
+               br(),
+               uiOutput("lineage_select_ui"),
                br(),
                uiOutput("step3_next_ui")
         ),
@@ -147,7 +150,7 @@ server <- function(input, output, session) {
                actionButton("generate_design", "Generate Design Matrix",  class = "btn btn-primary"),
                hr(),
                numericInput("max_knot", "Maximum knot for spline:", min = 4, value = 10),
-               numericInput("perm_iter", "Permutation iterations:", min = 11, value = 100),
+               numericInput("perm_iter", "Permutation iterations:", min = 11, value = 110),
                hr(),
                textInput("project_name", "Project name:", value = ""),
                textInput("email", "Email address:", value = ""),
@@ -303,6 +306,22 @@ server <- function(input, output, session) {
     })
   })
   
+  output$lineage_select_ui <- renderUI({
+    req(step3_run_done())    
+    req(step3_result())
+    sce <- step3_result()
+    
+    lin_names <- names(slingCurves(sce))
+    if(length(lin_names) == 0) return(NULL)
+    
+    selectInput(
+      inputId = "selected_lineage",
+      label = "Select Lineage:",
+      choices = lin_names,
+      selected = lin_names[1]
+    )
+  })
+  
   output$step3_plots_ui <- renderUI({
     req(step3_result())
     tagList(
@@ -313,12 +332,79 @@ server <- function(input, output, session) {
   
   output$step3_plot_cluster <- renderPlot({
     req(step3_result())
-    step3_result()$plot1
+    req(input$selected_lineage) 
+    
+    sce <- step3_result()
+    reduction <- input$step3_reduction
+    xvar <- paste0(reduction, "_1")
+    yvar <- paste0(reduction, "_2")
+    
+    rd_df <- as.data.frame(reducedDims(sce)$Reduction[, 1:2])
+    colnames(rd_df) <- c(xvar, yvar)
+    rd_df$cluster <- sce$cluster
+    
+    lineages <- slingCurves(sce)
+    curve_data <- data.frame()
+    for (i in seq_along(lineages)) {
+      curve_i <- as.data.frame(lineages[[i]]$s[,1:2])
+      colnames(curve_i) <- c(xvar, yvar)
+      curve_i$lineage <- names(lineages)[i]
+      curve_data <- rbind(curve_data, curve_i)
+    }
+    
+    curve_data_red <- subset(curve_data, lineage == input$selected_lineage)
+    curve_data_black <- subset(curve_data, lineage != input$selected_lineage)
+    
+    umap_plot <- ggplot(rd_df, aes(x = !!rlang::sym(xvar), y = !!rlang::sym(yvar), color = cluster)) +
+      geom_point(size = 0.5) +
+      labs(x = xvar, y = yvar, color = "Cluster Labels") +  
+      theme_minimal()
+    
+    umap_plot + 
+      geom_path(data = curve_data_black,
+                aes(x = !!rlang::sym(xvar), y = !!rlang::sym(yvar), group=lineage),
+                color = "black",
+                size = 1) +
+      geom_path(data = curve_data_red,
+                aes(x = !!rlang::sym(xvar), y = !!rlang::sym(yvar), group=lineage),
+                color = "red",
+                size = 1.5)
   })
+  
   
   output$step3_plot_pseudotime <- renderPlot({
     req(step3_result())
-    step3_result()$plot2
+    req(input$selected_lineage)
+    
+    sce <- step3_result()
+    reduction <- input$step3_reduction
+    xvar <- paste0(reduction, "_1")
+    yvar <- paste0(reduction, "_2")
+    
+    lineages <- slingCurves(sce)
+    sel_lineage_name <- input$selected_lineage
+    sel_index <- which(names(lineages) == sel_lineage_name)
+    if(length(sel_index) == 0) sel_index <- 1  
+    
+    pseudotime_col <- paste0("slingPseudotime_", sel_index)
+    
+    df <- data.frame(
+      Dim_1 = reducedDims(sce)$Reduction[,1],
+      Dim_2 = reducedDims(sce)$Reduction[,2],
+      cluster = colData(sce)$cluster
+    )
+    
+    pt <- colData(sce)[[pseudotime_col]]
+    if(is.null(pt)){
+      pt <- rep(NA, nrow(df))
+    }
+    df$pseudotime <- pt
+    
+    ggplot(df, aes(Dim_1, Dim_2, color = pseudotime)) +
+      geom_point(size = 1.5) +
+      scale_color_viridis_c(option = "D", na.value = "grey50") +
+      labs(title = paste0("Slingshot colored by pseudotime: ", sel_lineage_name), color = "pseudotime") +
+      theme_classic()
   })
   
   output$step3_next_ui <- renderUI({
@@ -331,7 +417,7 @@ server <- function(input, output, session) {
   observeEvent(input$run_filtering_btn, {
     req(processedObj(), step3_result())
     obj <- processedObj()
-    sce <- step3_result()$sce
+    sce <- step3_result()
     non_zero_num <- input$non_zero_num
     lower_quantile <- input$lower_quantile
     upper_quantile <- input$upper_quantile
@@ -341,7 +427,7 @@ server <- function(input, output, session) {
     }
     showModal(modalDialog(title = "Please wait", "Filtering...", footer = NULL, easyClose = FALSE))
     tryCatch({
-      res <- step4(obj, sce, non_zero_num, lower_quantile, upper_quantile)
+      res <- step4(obj, sce, non_zero_num, lower_quantile, upper_quantile, input$selected_lineage)
       step4_result(res)
       filter_run_done(TRUE)
       obj_filtered_temp(res$obj)
@@ -427,7 +513,7 @@ server <- function(input, output, session) {
   
   
   output$pseudotime_boxplot <- renderPlot({
-    sce <- step3_result()$sce
+    sce <- step3_result()
     pseudotime_matrix <- assay(sce@colData$slingshot, "pseudotime")
     pseudotime_vec <- pseudotime_matrix[,1]
     
@@ -506,8 +592,8 @@ server <- function(input, output, session) {
     }
     
     showModal(modalDialog(
-      title = "Running Lamian Analysis",
-      "This may take several minutes...",
+      title = "Lamian Data Preprocessing",
+      "Your data is being prepared. Please wait...",
       footer = NULL,
       easyClose = FALSE
     ))
@@ -524,7 +610,8 @@ server <- function(input, output, session) {
       
       step5_result <- step5(
         data = processedObj(),
-        sce = step3_result()$sce,
+        sce = step3_result(),
+        selected_lineage = input$selected_lineage,
         output_file_path = output_file_path,
         design = design_conv,
         maximumknotallowed = maximumknotallowed,
@@ -532,9 +619,28 @@ server <- function(input, output, session) {
         project_name = project_name,
         email_address = email_address
       )
-      removeModal() 
       
-      showNotification("Lamian analysis completed.", type = "message")
+      removeModal()
+      
+      showModal(
+        modalDialog(
+          title = "Lamian Job Submitted",
+          tagList(
+            p("The Lamian analysis is now running in the background."),
+            p("Your job ID is:"),
+            tags$pre(style = "color: red; user-select: text;", step5_result),
+            p("You can copy the following command in the SCC terminal to check the job status:"),
+            tags$pre(style = "color: red; user-select: text;", paste0("qstat -j ", step5_result)),
+            if (nchar(email_address) > 0) {
+              p("The results will be sent to your email address: ", email_address)
+            } else {
+              NULL
+            }
+          ),
+          footer = modalButton("Close"),
+          easyClose = TRUE
+        )
+      )
       
     }, error = function(e) {
       removeModal()
@@ -596,6 +702,17 @@ server <- function(input, output, session) {
       current_step(step + 1)
     } else if (step == 3) {
       req(step3_run_done())
+      req(step3_result())
+      req(input$selected_lineage)
+      req(processedObj())
+      sce <- step3_result()
+      obj <- processedObj()
+      pseudotime <- slingPseudotime(sce, na = TRUE)[,input$selected_lineage]
+      keep_cells <- names(pseudotime)[!is.na(pseudotime)]
+      sce_sub <- sce[, colnames(sce) %in% keep_cells]
+      obj_sub <- subset(obj, cells = keep_cells)
+      processedObj(obj_sub)
+      step3_result(sce_sub)
       current_step(step + 1)
     } else if (step == 4) {
       req(filter_run_done())
