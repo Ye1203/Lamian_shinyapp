@@ -18,10 +18,9 @@ ui <- fluidPage(
   tabsetPanel(
     tabPanel("Data preprocessing",
              fluidRow(
-               column(8,
+               column(12,
                       uiOutput("step_ui"),
-                      uiOutput("step_content"),
-                      fluidRow(uiOutput("nav_buttons"))
+                      uiOutput("step_content")
                )
              )
     ),
@@ -52,7 +51,18 @@ server <- function(input, output, session) {
   obj_filtered_temp <- reactiveVal(NULL) # Temporary filtered object for Step4
   
   output$step_ui <- renderUI({
-    h4(paste0("Step ", current_step(), " of ", total_steps))
+    step <- current_step()
+    if (step == 1) {
+      h4("Step 1 of 5: Reading data, Normalizing, Harmonizing")
+    }else if (step == 2){
+      h4("Step 2 of 5: Selecting sample and cell cluster index, Subseting")
+    }else if (step == 3){
+      h4("Step 3 of 5: Trajectory analysis - Slingshot")
+    }else if (step == 4){
+      h4("Step 4 of 5: Filtering")
+    }else if (step == 5){
+      h4("Step 5 of 5: Lamian parameter setting")
+    }
   })
   
   output$step_content <- renderUI({
@@ -60,13 +70,21 @@ server <- function(input, output, session) {
     if (step == 1) {
       fluidPage(
         fluidRow(
-          column(8, textInput("data_path", "Enter path to RDS file", value = "")),
-          column(4, br(), actionButton("read_btn_ui", "READ"))
-        ),
-        checkboxInput("do_harmony", "Perform Harmony correction", TRUE),
-        conditionalPanel(
-          condition = "input.do_harmony == true",
-          uiOutput("harmony_ui")
+          column(7,
+                 fluidRow(
+                   column(8, textInput("data_path", "Enter path to RDS (Seurat object) file", value = "")),
+                   column(4, br(), actionButton("read_btn_ui", "READ"))
+                 ),
+                 checkboxInput("do_harmony", "Perform Harmony correction", TRUE),
+                 conditionalPanel(
+                   condition = "input.do_harmony == true",
+                   uiOutput("harmony_ui")
+                 ),
+                 uiOutput("nav_buttons")
+          ),
+          column(5,
+                 uiOutput("step1_description")
+          )
         )
       )
     } else if (step == 2) {
@@ -75,20 +93,31 @@ server <- function(input, output, session) {
       is_harmony <- isTRUE(input$do_harmony)
       group_by_vars <- if (is_harmony) input$group_by_vars else NULL
       mdcols <- colnames(obj@meta.data)
-      fluidRow(
-        column(6,
-               h4("Select Sample"),
-               selectInput("sample_select", "Sample variable", choices = mdcols,
-                           selected = if (is_harmony && !is.null(group_by_vars)) group_by_vars else NULL),
-               plotOutput("sample_dimplot"),
-               uiOutput("sample_subset_ui")
+      
+      tagList(
+        fluidRow(
+          column(4,
+                 h4("Select Sample index"),
+                 selectInput("sample_select", "", choices = mdcols,
+                             selected = if (is_harmony && !is.null(group_by_vars)) group_by_vars else NULL),
+                 plotOutput("sample_dimplot"),
+                 uiOutput("sample_subset_ui")
+          ),
+          column(4,
+                 h4("Select Cell Cluster index"),
+                 selectInput("cluster_select", "", choices = mdcols,
+                             selected = mdcols[1]),
+                 plotOutput("cluster_dimplot"),
+                 uiOutput("cluster_subset_ui")
+          ),
+          column(4,
+                 uiOutput("step2_description")
+          )
         ),
-        column(6,
-               h4("Select Cluster"),
-               selectInput("cluster_select", "Cluster variable", choices = mdcols,
-                           selected = mdcols[1]),
-               plotOutput("cluster_dimplot"),
-               uiOutput("cluster_subset_ui")
+        fluidRow(
+          column(12,
+                 uiOutput("nav_buttons")
+          )
         )
       )
     } else if (step == 3) {
@@ -101,7 +130,7 @@ server <- function(input, output, session) {
       
       fluidRow(
         column(4,
-               selectInput("step3_reduction", "Select reduction:", choices = reductions,
+               selectInput("step3_reduction", "Select dimensionality reduction method:", choices = reductions,
                            selected = default_reduction),
                uiOutput("start_cluster_ui"),
                actionButton("run_sling_btn", "RUN SLINGSHOT"),
@@ -110,8 +139,11 @@ server <- function(input, output, session) {
                br(),
                uiOutput("step3_next_ui")
         ),
-        column(8,
+        column(4,
                uiOutput("step3_plots_ui")
+        ),
+        column(4,
+               uiOutput("step3_description")
         )
       )
     } else if (step == 4) {
@@ -119,8 +151,8 @@ server <- function(input, output, session) {
       fluidRow(
         column(4,
                numericInput("non_zero_num", "Minimum Non-zero Cells:", value = 100, min = 1),
-               numericInput("lower_quantile", "Lower Quantile:", min = 0, max = 1, value = 0.001, step = 0.001),
-               numericInput("upper_quantile", "Upper Quantile:", min = 0, max = 1, value = 0.999, step = 0.001),
+               numericInput("lower_quantile", "Lower Quantile:", min = 0, max = 1, value = 0.0010, step = 0.0001),
+               numericInput("upper_quantile", "Upper Quantile:", min = 0, max = 1, value = 0.9990, step = 0.0001),
                hr(),
                tags$div(strong("BEFORE FILTERING"), style = "margin-bottom:5px;"),
                tags$div("GENE NUMBER: ", span(textOutput("gene_num_before"), style = "color:red;font-weight:bold;")),
@@ -134,13 +166,16 @@ server <- function(input, output, session) {
                br(),
                actionButton("next_btn", "NEXT STEP", class = "btn btn-primary", disabled = !filter_run_done())
         ),
-        column(8,
+        column(4,
                plotOutput("pseudotime_boxplot")
+        ),
+        column(4,
+               uiOutput("step4_description")
         )
       )
     } else if (step == 5) {
       fluidRow(
-        column(5,
+        column(4,
                h3("Lamian Parameters"),
                textInput("output_path", "Output file path:", value = ""),
                hr(),
@@ -157,8 +192,10 @@ server <- function(input, output, session) {
                actionButton("run_lamian", "Run Lamian Analysis", 
                             class = "btn btn-primary")
         ),
-        column(7,
-               rHandsontableOutput("design_matrix"))
+        column(4,
+               rHandsontableOutput("design_matrix")),
+        column(4,
+               uiOutput("step5_description"))
       )
     }
   })
@@ -174,6 +211,100 @@ server <- function(input, output, session) {
     )
   })
   
+  output$step1_description <- renderUI({
+    tags$div(
+      style = "background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd;",
+      h4("1.Read data"),
+      p("a. Input your file path to your RDS file. (e.g. /projectnb/wax-es/ForVallari/G183_G193.rds)"),
+      p("b. Click \"READ\" to read your RDS file."),
+      tags$hr(),
+      h4("2.Normalize and Harmonize"),
+      p("a. After reading the data, if you need to perform harmony (highly recommended), make sure \"Perform Harmony correction\" is checked, otherwise uncheck it."),
+      p("b. If you \"Perform Harmony correction\" is checked, select the sample index of the RDS file and select the pca dimension to use (default is recommended). "),
+      p("c. Click \"Doing Normalization (Harmony)\" to start normalization and harmonization."),
+      tags$hr(),
+      h4("3. Next Step"),
+      p("Click \"Next Step\" to go to the step 2."),
+      em("")
+    )
+  })
+  output$step2_description <- renderUI({
+    tags$div(
+      style = "background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd;",
+      h4("1. Select the Sample index and Cell cluster index"),
+      p("Select the appropriate index in Select Sample index and Select Cell Cluster. Sample index is generally the sample number and information used to distinguish different samples; Cell Cluster refers to different cell types in biology. After selection, the Dimplot in the umap dimension will be automatically updated."),
+      tags$hr(),
+      h4("2. Subset"),
+      p("a. Uncheck the samples or cell you don't want to remove these cells from subsequent analysis. Removal can significantly increase the speed of subsequent runs and reduce the interference of unwanted cells on the results."),
+      p(style = "color: red;", "The nunber of sample muster greater than or equal to 4 abd the number of cell cluster must be greater than or equal to 2!!!!"),
+      p("b. Click \"DO SUBSET\" to view the results of subset. DI"),
+      tags$hr(),
+      h4("3. Next Step"),
+      p("After confirmation the susbet result, click \"Next Step\" to go to the step 3."),
+      em("")
+    )
+  })
+  
+  output$step3_description <- renderUI({
+    tags$div(
+      style = "background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd;",
+      h4("1. Select dimensionality reduction method"),
+      p("Select dimensionality reduction method, It is strongly recommended to use harmony."),
+      tags$hr(),
+      h4("2. Select the start cell cluster and start slingshot analysis"),
+      p("a. Select the starting cell type, Slingshot will automatically calculate the starting cell, the pseudotime of this cell will be 0."),
+      p("b. Click \"RUN SLINGSHOT\" to start slingshot analysis."),
+      p("After Slingshot finishes, two plots appear: the top shows cell type distribution, and the bottom shows pseudotime distribution in the chosen dimensionality reduction space."),
+      tags$hr(),
+      h4("3. Select lineage"),
+      p("If there are multiple cell types, multiple trajectory(Lineage) may appear. The currently selected lineage will be marked in red in the figure, and the unselected ones will be marked in black. If the pseudotime is NA (gray), the cell will be automatically removed."),
+      tags$hr(),
+      h4("4. Next Step"),
+      p("After confirming the selected lineage, click \"Next Step\" to go to the step 4."),
+      em("")
+    )
+  })
+  output$step4_description <- renderUI({
+    tags$div(
+      style = "background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd;",
+      h4("1. Set filtering criteria of munimum non-zero cells"),
+      p("Calculate the number of cells with non-zero expression for each gene in all selected samples, and remove genes with low-level set values."),
+      tags$hr(),
+      h4("2. Set filtering criteria of pseudotime"),
+      p("Set the cells to be removed based on the upper and lower quantiles of the distribution. The middle boxplot will automatically update the red dotted line based on the selected quantile."),
+      tags$hr(),
+      h4("3. Filtering"),
+      p("Click \"RUN FILTERING\" to filtering cell and gene based on criteria setting."),
+      tags$hr(),
+      h4("4. Next Step"),
+      p("After confirming, click \"Next Step\" to go to the step 5."),
+      em("")
+    )
+  })
+  
+  output$step5_description <- renderUI({
+    tags$div(
+      style = "background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd;",
+      h4("1. Input the output file path"),
+      p("Enter an absolute path address on scc, and all generated files will be under this file."),
+      tags$hr(),
+      h4("2. Set design matrix"),
+      p("a. Set the number of columns required in the design matrix."),
+      p("b. Click \"Generate Design Matrix\" to get the design matrix."),
+      p("c. Check the design matrix. Test.variable is the covariate to test; confounders are other factors. For example, if the sample includes gender and injection, focus on gender (test.variable) and treat injection as confounder. Check for yes (1), uncheck for no (0)."),
+      tags$hr(),
+      h4("3. Other value setting"),
+      p("a. \"Maximum knot of spline\" controls spline flexibility; default is recommended."),
+      p("b. \"Permutation iterations\" set simulation runs; higher gives more accuracy but takes longer. Default is recommended. Since qsub limits to 24 hours, too large values may cause timeout. If so, contact Bingtian."),
+      p("c. \"Project name\" is the project name you can use on scc, such as wax-es, wax-dk, etc."),
+      p("d. \"Email address\" is empty by default. Since Lamian runs for hours, provide your email to get results. If no email after 48 hours, it may have timed out. Try reducing cells, genes, or permutation times."),
+      tags$hr(),
+      h4("4. Start lamian analysis"),
+      p("click \"Run Lamian Analysis\" to start lamian data preparing. Please close Shinyapp after the Lamian Job Submitted pop-up window appears."),
+      em("")
+    )
+  })
+  
   observeEvent(input$read_btn_ui, {
     path <- input$data_path
     if (!nzchar(path) || !file.exists(path)) {
@@ -182,7 +313,11 @@ server <- function(input, output, session) {
       runDoneStep1(FALSE)
       return()
     }
-    showModal(modalDialog(title = "Please wait", "Reading...", footer = NULL, easyClose = FALSE))
+    showModal(modalDialog(title = "Please wait", 
+                          tagList(
+                            p("Reading..."),
+                            p("The waiting time is related to the size of the RDS file and usually takes one minute.")
+                          ), footer = NULL, easyClose = FALSE))
     tryCatch({
       obj <- readRDS(path)
       seuratObj(obj)
@@ -208,7 +343,16 @@ server <- function(input, output, session) {
     is_harmony <- isTRUE(input$do_harmony)
     group_by_vars <- if (is_harmony) input$group_by_vars else NULL
     dims_use <- if (is_harmony) input$dims_use else NULL
-    showModal(modalDialog(title = "Please wait", "Running step1...", footer = NULL, easyClose = FALSE))
+    if (is_harmony) {showModal(modalDialog(title = "Please wait",
+                                           tagList(
+                                             p("Running Normalization and Harmonization..."),
+                                             p("The waiting time is related to the size of data and the number of dimention. Usually takes several minute.")
+                                           ), footer = NULL, easyClose = FALSE))
+    }else if(!is_harmony){showModal(modalDialog(title = "Please wait",
+                                                tagList(
+                                                  p("Running Normalization..."),
+                                                  p("Usually takes less than 1 minute.")
+                                                ), footer = NULL, easyClose = FALSE))}
     tryCatch({
       obj_processed <- step1(data = obj, is_harmony, group_by_vars, dims_use)
       processedObj(obj_processed)
@@ -229,7 +373,7 @@ server <- function(input, output, session) {
     vals <- sort(unique(dt@meta.data[[input$sample_select]]))
     selected_vals <- isolate(input$sample_subset_vals)
     if (is.null(selected_vals) || !all(selected_vals %in% vals)) selected_vals <- vals
-    checkboxGroupInput("sample_subset_vals", "Subset samples", choices = vals, selected = selected_vals)
+    checkboxGroupInput("sample_subset_vals", "Subset Samples", choices = vals, selected = selected_vals)
   })
   
   output$cluster_subset_ui <- renderUI({
@@ -238,7 +382,7 @@ server <- function(input, output, session) {
     vals <- sort(unique(dt@meta.data[[input$cluster_select]]))
     selected_vals <- isolate(input$cluster_subset_vals)
     if (is.null(selected_vals) || !all(selected_vals %in% vals)) selected_vals <- vals
-    checkboxGroupInput("cluster_subset_vals", "Subset clusters", choices = vals, selected = selected_vals)
+    checkboxGroupInput("cluster_subset_vals", "Subset Cell clusters", choices = vals, selected = selected_vals)
   })
   
   output$sample_dimplot <- renderPlot({
@@ -260,7 +404,11 @@ server <- function(input, output, session) {
     cluster_var <- input$cluster_select
     sample_vals <- input$sample_subset_vals
     cluster_vals <- input$cluster_subset_vals
-    showModal(modalDialog(title = "Please wait", "Subsetting data...", footer = NULL, easyClose = FALSE))
+    showModal(modalDialog(title = "Please wait",
+                          tagList(
+                            p("Subsetting..."),
+                            p("This step doesn't take long time.")
+                          ), footer = NULL, easyClose = FALSE))
     tryCatch({
       keep_sample <- colnames(obj)[obj@meta.data[[sample_var]] %in% sample_vals]
       keep_cluster <- colnames(obj)[obj@meta.data[[cluster_var]] %in% cluster_vals]
@@ -282,7 +430,7 @@ server <- function(input, output, session) {
     cls_col <- input$cluster_select
     req(cls_col)
     vals <- unique(obj@meta.data[[cls_col]])
-    selectInput("step3_start_cluster", "Select start cluster:", choices = vals, selected = vals[1])
+    selectInput("step3_start_cluster", "Select start Cell cluster:", choices = vals, selected = vals[1])
   })
   
   observeEvent(input$run_sling_btn, {
@@ -292,7 +440,11 @@ server <- function(input, output, session) {
     clusters <- input$cluster_select
     reduction <- input$step3_reduction
     start_cluster <- input$step3_start_cluster
-    showModal(modalDialog(title = "Please wait", "Running Slingshot...", footer = NULL, easyClose = FALSE))
+    showModal(modalDialog(title = "Please wait",
+                          tagList(
+                            p("Running Slingshot..."),
+                            p("The waiting time is related to the the number of cellIt takes several minutes to half hour (if the input data is large and no subset is performed).")
+                          ), footer = NULL, easyClose = FALSE))
     tryCatch({
       res <- step3(obj, sample, clusters, reduction, start_cluster)
       step3_result(res)
@@ -358,7 +510,12 @@ server <- function(input, output, session) {
     umap_plot <- ggplot(rd_df, aes(x = !!rlang::sym(xvar), y = !!rlang::sym(yvar), color = cluster)) +
       geom_point(size = 0.5) +
       labs(x = xvar, y = yvar, color = "Cluster Labels") +  
-      theme_minimal()
+      theme_minimal() +
+      theme(
+        legend.title = element_text(size = 14),     
+        legend.text = element_text(size = 12),      
+        legend.key.size = unit(3, "cm")              
+      )
     
     umap_plot + 
       geom_path(data = curve_data_black,
@@ -404,12 +561,17 @@ server <- function(input, output, session) {
       geom_point(size = 1.5) +
       scale_color_viridis_c(option = "D", na.value = "grey50") +
       labs(title = paste0("Slingshot colored by pseudotime: ", sel_lineage_name), color = "pseudotime") +
-      theme_classic()
+      theme_classic()+
+      theme(
+        legend.title = element_text(size = 14),     
+        legend.text = element_text(size = 12),      
+        legend.key.size = unit(1, "cm")              
+      )
   })
   
   output$step3_next_ui <- renderUI({
     disabled <- !step3_run_done()
-    actionButton("next_btn", "Next step",
+    actionButton("next_btn", "NEXT STEP",
                  class = if (disabled) "btn btn-secondary" else "btn btn-primary",
                  disabled = disabled)
   })
@@ -593,7 +755,10 @@ server <- function(input, output, session) {
     
     showModal(modalDialog(
       title = "Lamian Data Preprocessing",
-      "Your data is being prepared. Please wait...",
+      tagList(
+        p("Your data is being prepared. Please wait..."),
+        p("This step usually takes a few minutes.")
+      ),
       footer = NULL,
       easyClose = FALSE
     ))
@@ -652,26 +817,26 @@ server <- function(input, output, session) {
     step <- current_step()
     if (step == 1) {
       fluidRow(
-        column(4,
-               actionButton("run_btn_ui", "RUN",
+        column(8,
+               actionButton("run_btn_ui", "Doing Normalization (Harmony)",
                             class = if (dataLoaded()) "btn btn-primary" else "btn btn-secondary",
                             disabled = !dataLoaded())
         ),
         column(4,
-               actionButton("next_btn", "Next step",
+               actionButton("next_btn", "NEXT STEP",
                             class = if (runDoneStep1()) "btn btn-primary" else "btn btn-secondary",
                             disabled = !runDoneStep1())
         )
       )
     } else if (step == 2) {
       fluidRow(
-        column(3,
-               actionButton("run_subset_btn", "RUN Subset",
+        column(4,
+               actionButton("run_subset_btn", "DO SUBSET",
                             class = if (runDoneStep1()) "btn btn-primary" else "btn btn-secondary",
                             disabled = !runDoneStep1())
         ),
-        column(9,
-               actionButton("next_btn", "Next step",
+        column(4,
+               actionButton("next_btn", "NEXT STEP",
                             class = "btn btn-primary",
                             disabled = FALSE)
         )
@@ -687,7 +852,7 @@ server <- function(input, output, session) {
   
   output$step3_next_ui <- renderUI({
     disabled <- !step3_run_done()
-    actionButton("next_btn", "Next step",
+    actionButton("next_btn", "NEXT STEP",
                  class = if (disabled) "btn btn-secondary" else "btn btn-primary",
                  disabled = disabled)
   })
