@@ -22,7 +22,7 @@ step5 <- function(data, sce, selected_lineage, output_file_path, design, maximum
     rownames(design) <- design$Sample
     design$Sample <- NULL
   }
-  if ("intercept" %in% colnames(design)) {
+  if(!("intercept" %in% colnames(design))) {
     design <- cbind(intercept = 1, design)
   }
   
@@ -96,7 +96,7 @@ res <- tryCatch({
     body <- c(
       "Hi,",
       "",
-      sprintf("The procedure has been completed successfully, the result is under folder %%s. Spending %%s %%s", round(as.numeric(elapsed_time),2), as.numeric(elapsed_time), attr(elapsed_time, "units")),
+      sprintf("The procedure has been completed successfully, the result is under folder %%s. Spending %%s %%s", output_file_path, round(as.numeric(elapsed_time),2), as.numeric(elapsed_time), attr(elapsed_time, "units")),
       "",
       "Best,",
       "Bingtian"

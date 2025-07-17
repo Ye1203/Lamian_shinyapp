@@ -12,14 +12,15 @@ step4 <- function(obj, sce, non_zero_num, lower_quantile, upper_quantile, select
   cell_list <- intersect(colnames(obj),names(pseudotime)[!is.na(pseudotime)])
   
   pseudotime <- pseudotime[cell_list]
-  Q1 <- quantile(pseudotime, lower_quantile, na.rm = TRUE)  # swapped upper/lower quantile
-  Q3 <- quantile(pseudotime, upper_quantile, na.rm = TRUE)
+  Q1 <- quantile(pseudotime, lower_quantile/100, na.rm = TRUE)  # swapped upper/lower quantile
+  Q3 <- quantile(pseudotime, upper_quantile/100, na.rm = TRUE)
   inlier <- pseudotime >= Q1 & pseudotime <= Q3
   
   keep_cells <- names(pseudotime)[inlier]
   obj_sub <- subset(obj, cells = keep_cells, features = gene_list)
   return(list(
     obj = obj_sub,
+    non_zero_num = non_zero_num,
     lower_quantile = lower_quantile,
     upper_quantile = upper_quantile
   ))

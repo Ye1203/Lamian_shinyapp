@@ -14,7 +14,7 @@ source("step5.R")
 
 ui <- fluidPage(
   titlePanel("Lamian - Waxman's lab"),
-  tags$h4("produced by Bingtian Ye(btye@bu.edu)"),
+  tags$h4("Made by Bingtian Ye(btye@bu.edu)"),
   tabsetPanel(
     tabPanel("Data preprocessing",
              fluidRow(
@@ -70,7 +70,7 @@ server <- function(input, output, session) {
     if (step == 1) {
       fluidPage(
         fluidRow(
-          column(7,
+          column(4,
                  fluidRow(
                    column(8, textInput("data_path", "Enter path to RDS (Seurat object) file", value = "")),
                    column(4, br(), actionButton("read_btn_ui", "READ"))
@@ -82,7 +82,10 @@ server <- function(input, output, session) {
                  ),
                  uiOutput("nav_buttons")
           ),
-          column(5,
+          column(4,
+                 plotOutput("step1_plot")
+          ),
+          column(4,
                  uiOutput("step1_description")
           )
         )
@@ -92,8 +95,10 @@ server <- function(input, output, session) {
       obj <- processedObj()
       is_harmony <- isTRUE(input$do_harmony)
       group_by_vars <- if (is_harmony) input$group_by_vars else NULL
-      mdcols <- colnames(obj@meta.data)
-      
+      mdcols <- names(sapply(obj@meta.data, function(x) !is.numeric(x))[sapply(obj@meta.data, function(x) !is.numeric(x))])
+      if (!is.null(mdcols) && "CB" %in% mdcols) {
+        mdcols <- setdiff(mdcols, "CB")
+      }
       tagList(
         fluidRow(
           column(4,
@@ -133,7 +138,7 @@ server <- function(input, output, session) {
                selectInput("step3_reduction", "Select dimensionality reduction method:", choices = reductions,
                            selected = default_reduction),
                uiOutput("start_cluster_ui"),
-               actionButton("run_sling_btn", "RUN SLINGSHOT"),
+               actionButton("run_sling_btn", "INITIATE SLINGSHOT"),
                br(),
                uiOutput("lineage_select_ui"),
                br(),
@@ -150,15 +155,15 @@ server <- function(input, output, session) {
       req(processedObj(), step3_result())
       fluidRow(
         column(4,
-               numericInput("non_zero_num", "Minimum Non-zero Cells:", value = 100, min = 1),
-               numericInput("lower_quantile", "Lower Quantile:", min = 0, max = 1, value = 0.0010, step = 0.0001),
-               numericInput("upper_quantile", "Upper Quantile:", min = 0, max = 1, value = 0.9990, step = 0.0001),
+               numericInput("non_zero_num", "Gene Filter: Minimum of Non-zero Cells", value = 100, min = 1),
+               numericInput("lower_quantile", "Cell Filter: Lower Pseudotime Quantile (%)", min = 0, max = 100, value = 0.01, step = 0.01),
+               numericInput("upper_quantile", "Cell Filter: Upper Pseudotime Quantile (%)", min = 0, max = 100, value = 99.99, step = 0.01),
                hr(),
                tags$div(strong("BEFORE FILTERING"), style = "margin-bottom:5px;"),
                tags$div("GENE NUMBER: ", span(textOutput("gene_num_before"), style = "color:red;font-weight:bold;")),
                tags$div("CELL NUMBER: ", span(textOutput("cell_num_before"), style = "color:red;font-weight:bold;")),
                br(),
-               actionButton("run_filtering_btn", "RUN FILTERING"),
+               actionButton("run_filtering_btn", "FILTERING"),
                hr(),
                tags$div(strong("AFTER FILTERING"), style = "margin-bottom:5px;"),
                tags$div("GENE NUMBER: ", span(textOutput("gene_num_after"), style = "color:red;font-weight:bold;")),
@@ -175,7 +180,7 @@ server <- function(input, output, session) {
       )
     } else if (step == 5) {
       fluidRow(
-        column(4,
+        column(3,
                h3("Lamian Parameters"),
                textInput("output_path", "Output file path:", value = ""),
                hr(),
@@ -192,7 +197,7 @@ server <- function(input, output, session) {
                actionButton("run_lamian", "Run Lamian Analysis", 
                             class = "btn btn-primary")
         ),
-        column(4,
+        column(5,
                rHandsontableOutput("design_matrix")),
         column(4,
                uiOutput("step5_description"))
@@ -203,11 +208,14 @@ server <- function(input, output, session) {
   output$harmony_ui <- renderUI({
     obj <- seuratObj()
     if (is.null(obj)) return(tags$em("Please read a valid Seurat object first."))
-    md_cols <- tryCatch(colnames(obj@meta.data), error = function(e) NULL)
+    md_cols <- tryCatch(names(sapply(obj@meta.data, function(x) !is.numeric(x))[sapply(obj@meta.data, function(x) !is.numeric(x))]), error = function(e) NULL)
+    if (!is.null(md_cols) && "CB" %in% md_cols) {
+      md_cols <- setdiff(md_cols, "CB")
+    }
     if (is.null(md_cols)) return(tags$em("Cannot extract meta.data columns."))
     tagList(
-      selectInput("group_by_vars", "Select group.by.vars", choices = md_cols, multiple = FALSE),
-      numericInput("dims_use", "Set dims.use", value = 10, min = 1, max = 100)
+      selectInput("group_by_vars", "Select sample index", choices = md_cols, multiple = FALSE),
+      numericInput("dims_use", "Set the number of pca to use", value = length(obj@reductions$pca), min = 1, max = length(obj@reductions$pca))
     )
   })
   
@@ -220,11 +228,11 @@ server <- function(input, output, session) {
       tags$hr(),
       h4("2.Normalize and Harmonize"),
       p("a. After reading the data, if you need to perform harmony (highly recommended), make sure \"Perform Harmony correction\" is checked, otherwise uncheck it."),
-      p("b. If you \"Perform Harmony correction\" is checked, select the sample index of the RDS file and select the pca dimension to use (default is recommended). "),
-      p("c. Click \"Doing Normalization (Harmony)\" to start normalization and harmonization."),
+      p("b. If you \"Perform Harmony correction\" is checked, select the sample index of the RDS file and select the number of pca dimension to use (default is recommended). "),
+      p("c. Click \"INITIATE Normalization\" to start normalization and harmonization."),
       tags$hr(),
       h4("3. Next Step"),
-      p("Click \"Next Step\" to go to the step 2."),
+      p("Click \"NEXT STEP\" to go to the step 2."),
       em("")
     )
   })
@@ -232,15 +240,15 @@ server <- function(input, output, session) {
     tags$div(
       style = "background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd;",
       h4("1. Select the Sample index and Cell cluster index"),
-      p("Select the appropriate index in Select Sample index and Select Cell Cluster. Sample index is generally the sample number and information used to distinguish different samples; Cell Cluster refers to different cell types in biology. After selection, the Dimplot in the umap dimension will be automatically updated."),
+      p("Select the appropriate index in Select Sample index and Select Cell Cluster. Sample index is generally the sample number and information used to distinguish different samples; Cell Cluster refers to different cell types in biology. After selection, the UMAP plot in the umap dimension will be automatically updated."),
       tags$hr(),
       h4("2. Subset"),
       p("a. Uncheck the samples or cell you don't want to remove these cells from subsequent analysis. Removal can significantly increase the speed of subsequent runs and reduce the interference of unwanted cells on the results."),
-      p(style = "color: red;", "The nunber of sample muster greater than or equal to 4 abd the number of cell cluster must be greater than or equal to 2!!!!"),
-      p("b. Click \"DO SUBSET\" to view the results of subset. DI"),
+      p(style = "color: red;", "The nunber of sample must greater than or equal to 4 and the number of cell cluster must be greater than or equal to 2!!!!"),
+      p("b. Click \"INITIATE SUBSET\" to view the results of subset. DI"),
       tags$hr(),
       h4("3. Next Step"),
-      p("After confirmation the susbet result, click \"Next Step\" to go to the step 3."),
+      p("After confirmation the susbet result, click \"NEXT STEP\" to go to the step 3."),
       em("")
     )
   })
@@ -253,31 +261,31 @@ server <- function(input, output, session) {
       tags$hr(),
       h4("2. Select the start cell cluster and start slingshot analysis"),
       p("a. Select the starting cell type, Slingshot will automatically calculate the starting cell, the pseudotime of this cell will be 0."),
-      p("b. Click \"RUN SLINGSHOT\" to start slingshot analysis."),
+      p("b. Click \"INITIATE SLINGSHOT\" to start slingshot analysis."),
       p("After Slingshot finishes, two plots appear: the top shows cell type distribution, and the bottom shows pseudotime distribution in the chosen dimensionality reduction space."),
       tags$hr(),
       h4("3. Select lineage"),
       p("If there are multiple cell types, multiple trajectory(Lineage) may appear. The currently selected lineage will be marked in red in the figure, and the unselected ones will be marked in black. If the pseudotime is NA (gray), the cell will be automatically removed."),
       tags$hr(),
       h4("4. Next Step"),
-      p("After confirming the selected lineage, click \"Next Step\" to go to the step 4."),
+      p("After confirming the selected lineage, click \"NEXT STEP\" to go to the step 4."),
       em("")
     )
   })
   output$step4_description <- renderUI({
     tags$div(
       style = "background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd;",
-      h4("1. Set filtering criteria of munimum non-zero cells"),
+      h4("1. Set Gene filtering criteria of munimum non-zero cells"),
       p("Calculate the number of cells with non-zero expression for each gene in all selected samples, and remove genes with low-level set values."),
       tags$hr(),
-      h4("2. Set filtering criteria of pseudotime"),
+      h4("2. Set Cell filtering criteria of pseudotime"),
       p("Set the cells to be removed based on the upper and lower quantiles of the distribution. The middle boxplot will automatically update the red dotted line based on the selected quantile."),
       tags$hr(),
       h4("3. Filtering"),
-      p("Click \"RUN FILTERING\" to filtering cell and gene based on criteria setting."),
+      p("Click \"FILTERING\" to filtering cell and gene based on criteria setting."),
       tags$hr(),
       h4("4. Next Step"),
-      p("After confirming, click \"Next Step\" to go to the step 5."),
+      p("After confirming, click \"NEXT STEP\" to go to the step 5."),
       em("")
     )
   })
@@ -346,7 +354,7 @@ server <- function(input, output, session) {
     if (is_harmony) {showModal(modalDialog(title = "Please wait",
                                            tagList(
                                              p("Running Normalization and Harmonization..."),
-                                             p("The waiting time is related to the size of data and the number of dimention. Usually takes several minute.")
+                                             p("The waiting time is related to the size of data and the number of dimention. Usually takes several minutes.")
                                            ), footer = NULL, easyClose = FALSE))
     }else if(!is_harmony){showModal(modalDialog(title = "Please wait",
                                                 tagList(
@@ -385,16 +393,23 @@ server <- function(input, output, session) {
     checkboxGroupInput("cluster_subset_vals", "Subset Cell clusters", choices = vals, selected = selected_vals)
   })
   
+  output$step1_plot <- renderPlot({
+    req(dataLoaded())
+    req(input$do_harmony == TRUE)
+    data <- seuratObj()
+    DimPlot(data, group.by = input$group_by_vars) + ggtitle(paste("UMAP Plot by", input$group_by_vars))
+  })
+  
   output$sample_dimplot <- renderPlot({
     dt <- data_temp()
     req(dt, input$sample_select)
-    DimPlot(dt, group.by = input$sample_select) + ggtitle(paste("DimPlot by", input$sample_select))
+    DimPlot(dt, group.by = input$sample_select) + ggtitle(paste("UMAP Plot by", input$sample_select))
   })
   
   output$cluster_dimplot <- renderPlot({
     dt <- data_temp()
     req(dt, input$cluster_select)
-    DimPlot(dt, group.by = input$cluster_select) + ggtitle(paste("DimPlot by", input$cluster_select))
+    DimPlot(dt, group.by = input$cluster_select) + ggtitle(paste("UMAP Plot by", input$cluster_select))
   })
   
   observeEvent(input$run_subset_btn, {
@@ -430,7 +445,7 @@ server <- function(input, output, session) {
     cls_col <- input$cluster_select
     req(cls_col)
     vals <- unique(obj@meta.data[[cls_col]])
-    selectInput("step3_start_cluster", "Select start Cell cluster:", choices = vals, selected = vals[1])
+    selectInput("step3_start_cluster", "Select root Cell cluster:", choices = vals, selected = vals[1])
   })
   
   observeEvent(input$run_sling_btn, {
@@ -443,7 +458,7 @@ server <- function(input, output, session) {
     showModal(modalDialog(title = "Please wait",
                           tagList(
                             p("Running Slingshot..."),
-                            p("The waiting time is related to the the number of cellIt takes several minutes to half hour (if the input data is large and no subset is performed).")
+                            p("The waiting time is related to the the number of cell. It takes several minutes to half hour (if the input data is large and no subset is performed).")
                           ), footer = NULL, easyClose = FALSE))
     tryCatch({
       res <- step3(obj, sample, clusters, reduction, start_cluster)
@@ -513,19 +528,21 @@ server <- function(input, output, session) {
       theme_minimal() +
       theme(
         legend.title = element_text(size = 14),     
-        legend.text = element_text(size = 12),      
-        legend.key.size = unit(3, "cm")              
-      )
+        legend.text = element_text(size = 12)        
+      )+
+      guides(color = guide_legend(
+        override.aes = list(size = 5) 
+      ))
     
     umap_plot + 
       geom_path(data = curve_data_black,
                 aes(x = !!rlang::sym(xvar), y = !!rlang::sym(yvar), group=lineage),
                 color = "black",
-                size = 1) +
+                linewidth = 1) +
       geom_path(data = curve_data_red,
                 aes(x = !!rlang::sym(xvar), y = !!rlang::sym(yvar), group=lineage),
                 color = "red",
-                size = 1.5)
+                linewidth = 1.5)
   })
   
   
@@ -594,6 +611,7 @@ server <- function(input, output, session) {
       filter_run_done(TRUE)
       obj_filtered_temp(res$obj)
       
+      updateNumericInput(session, "non_zero_num", value = res$non_zero_num)
       updateNumericInput(session, "lower_quantile", value = res$lower_quantile)
       updateNumericInput(session, "upper_quantile", value = res$upper_quantile)
       
@@ -690,8 +708,8 @@ server <- function(input, output, session) {
     df_all <- df %>%
       mutate(sample_id = "All_samples")
     df_plot <- bind_rows(df, df_all)
-    Q1_all <- quantile(df$pseudotime, probs = input$lower_quantile, na.rm = TRUE)
-    Q3_all <- quantile(df$pseudotime, probs = input$upper_quantile, na.rm = TRUE)
+    Q1_all <- quantile(df$pseudotime, probs = input$lower_quantile/100, na.rm = TRUE)
+    Q3_all <- quantile(df$pseudotime, probs = input$upper_quantile/100, na.rm = TRUE)
     
     x_min <- 0
     x_max <- max(df$pseudotime, na.rm = TRUE)
@@ -816,13 +834,20 @@ server <- function(input, output, session) {
   output$nav_buttons <- renderUI({
     step <- current_step()
     if (step == 1) {
+      btn_label <- if (isTRUE(input$do_harmony)) {
+        "INITIATE Normalization with Harmony"
+      } else {
+        "INITIATE Normalization"
+      }
+      
       fluidRow(
         column(8,
-               actionButton("run_btn_ui", "Doing Normalization (Harmony)",
-                            class = if (dataLoaded()) "btn btn-primary" else "btn btn-secondary",
-                            disabled = !dataLoaded())
-        ),
-        column(4,
+               div(
+                 actionButton("run_btn_ui", btn_label,
+                              class = if (dataLoaded()) "btn btn-primary" else "btn btn-secondary",
+                              disabled = !dataLoaded()),
+                 style = "margin-bottom: 15px;"
+               ),
                actionButton("next_btn", "NEXT STEP",
                             class = if (runDoneStep1()) "btn btn-primary" else "btn btn-secondary",
                             disabled = !runDoneStep1())
@@ -830,15 +855,17 @@ server <- function(input, output, session) {
       )
     } else if (step == 2) {
       fluidRow(
-        column(4,
-               actionButton("run_subset_btn", "DO SUBSET",
+        column(8,
+               actionButton("run_subset_btn", "INITIATE SUBSET",
                             class = if (runDoneStep1()) "btn btn-primary" else "btn btn-secondary",
-                            disabled = !runDoneStep1())
+                            disabled = !runDoneStep1(),
+                            style = "width: 100%; text-align: center;")
         ),
         column(4,
                actionButton("next_btn", "NEXT STEP",
                             class = "btn btn-primary",
-                            disabled = FALSE)
+                            disabled = FALSE,
+                            style = "width: 100%; text-align: center;")
         )
       )
     } else if (step == 3) {
