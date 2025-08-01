@@ -6,7 +6,6 @@ step3 <- function(obj, sample, clusters, reduction, start_cluster) {
   sce$sample <- obj@meta.data[[sample]]
   sce$cluster <- obj@meta.data[[clusters]]
   reducedDims(sce)$Reduction <- Embeddings(obj, reduction)
-  
   sce <- slingshot(
     sce,
     clusterLabels = "cluster",

@@ -1,17 +1,27 @@
 library(shiny)
+library(shinyjs)
+library(DT)
 library(Seurat)
 library(ggplot2)
+library(scater)
+library(viridis)
 library(SingleCellExperiment)
 library(slingshot)
 library(harmony)
 library(dplyr)
+library(tibble)
 library(tidyr)
 library(rhandsontable)
-source("step1.R")
-source("step3.R")
-source("step4.R")
-source("step5.R")
-
+library(plotly)
+devtools::load_all("/projectnb/wax-es/Bingtian/Lamian/renv/library/linux-almalinux-8.10/R-4.4/x86_64-pc-linux-gnu/Lamian")
+source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/step1.R")
+source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/step3.R")
+source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/step4.R")
+source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/step5.R")
+source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/visualization.R")
+source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/visualization_read.R")
+source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/draw_heatmap.R")
+set.seed(123)
 ui <- fluidPage(
   titlePanel("Lamian - Waxman's lab"),
   tags$h4("Made by Bingtian Ye(btye@bu.edu)"),
@@ -25,7 +35,7 @@ ui <- fluidPage(
              )
     ),
     tabPanel("Data visualization",
-             h3("Coming soon...")
+             dataVisualizationUI()
     )
   )
 )
@@ -352,15 +362,15 @@ server <- function(input, output, session) {
     group_by_vars <- if (is_harmony) input$group_by_vars else NULL
     dims_use <- if (is_harmony) input$dims_use else NULL
     if (is_harmony) {showModal(modalDialog(title = "Please wait",
-                                           tagList(
-                                             p("Running Normalization and Harmonization..."),
-                                             p("The waiting time is related to the size of data and the number of dimention. Usually takes several minutes.")
-                                           ), footer = NULL, easyClose = FALSE))
-    }else if(!is_harmony){showModal(modalDialog(title = "Please wait",
-                                                tagList(
-                                                  p("Running Normalization..."),
-                                                  p("Usually takes less than 1 minute.")
-                                                ), footer = NULL, easyClose = FALSE))}
+                                          tagList(
+                                            p("Running Normalization and Harmonization..."),
+                                            p("The waiting time is related to the size of data and the number of dimention. Usually takes several minutes.")
+                                          ), footer = NULL, easyClose = FALSE))
+      }else if(!is_harmony){showModal(modalDialog(title = "Please wait",
+                                                  tagList(
+                                                    p("Running Normalization..."),
+                                                    p("Usually takes less than 1 minute.")
+                                                  ), footer = NULL, easyClose = FALSE))}
     tryCatch({
       obj_processed <- step1(data = obj, is_harmony, group_by_vars, dims_use)
       processedObj(obj_processed)
@@ -921,6 +931,7 @@ server <- function(input, output, session) {
       easyClose = TRUE
     ))
   })
+  dataVisualization_server(input, output, session)
 }
 
 shinyApp(ui, server)
