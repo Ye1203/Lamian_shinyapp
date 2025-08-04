@@ -31,6 +31,7 @@ dataVisualization_server <- function(input, output, session) {
   gene_list <- reactiveVal()
   heatmap_plot <- reactiveVal(NULL)
   heatmap_data <- reactiveVal(NULL)
+  heatmap_name <- reactiveVal(NULL)
   
   observe({
     if (nchar(input$result_folder) > 0) {
@@ -134,7 +135,12 @@ dataVisualization_server <- function(input, output, session) {
       navlistPanel(
         widths = c(2, 10),
         tabPanel("HEATMAP", uiOutput("heatmap_ui")),
-        tabPanel("GENE ANALYSIS", uiOutput("gene_ui"))
+        tabPanel("GENE ANALYSIS", uiOutput("gene_ui")),
+        tabPanel(
+          title = "DOWNLOAD VISUALIZATION",
+          value = "download_tab",
+          uiOutput("download_tab_content")  # 动态内容区域
+        )
       )
     }
   })
@@ -213,7 +219,7 @@ dataVisualization_server <- function(input, output, session) {
           
           actionButton("draw_plot", "Draw Plot", 
                        class = "btn-success", width = "100%"),
-          
+
           actionButton("save_heatmap_plot", "Save Plot", 
                        class = "btn-primary", width = "100%", disabled = TRUE),
           
@@ -222,9 +228,9 @@ dataVisualization_server <- function(input, output, session) {
           numericInput(
             "pseudotime_samples",
             "Number of Pseudotime samples:",
-            value = 10,
+            value = 11,
             min = 3,
-            max = 100,
+            max = 1000,
             step = 1
           ),
          
@@ -268,6 +274,26 @@ dataVisualization_server <- function(input, output, session) {
     } else {
       showNotification("Gene list is empty!", type = "warning")
     }
+  })
+  
+  output$cluster_num_ui <- renderUI({
+    req(input$cluster_method)
+    
+    default_val <- ifelse(input$cluster_method == "kmeans", 6, 1)
+    
+    numericInput(
+      "cluster_number",
+      "Number of Clusters:",
+      value = default_val,
+      min = 1,
+      max = 20,
+      step = 1
+    )
+  })
+  
+  observeEvent(input$cluster_method, {
+    default_val <- ifelse(input$cluster_method == "kmeans", 6, 1)
+    updateNumericInput(session, "cluster_number", value = default_val)
   })
   
   observeEvent(input$draw_plot, {
@@ -317,7 +343,8 @@ dataVisualization_server <- function(input, output, session) {
     
     heatmap_plot(result$plot)
     heatmap_data(result$df)
-    
+    heatmap_name(result$names)
+  
     if(!is.null(result$plot)) {
       output$heatmap_display <- renderPlot({
         result$plot
@@ -341,24 +368,174 @@ dataVisualization_server <- function(input, output, session) {
     }
   })
   
-  output$cluster_num_ui <- renderUI({
-    req(input$cluster_method)
+  observeEvent(input$save_heatmap_plot, {
+    req(heatmap_plot(), heatmap_data(), input$result_folder)
     
-    default_val <- ifelse(input$cluster_method == "kmeans", 6, 1)
+    vis_dir <- file.path(input$result_folder, "visualization", "Heatmap")
+    if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
     
-    numericInput(
-      "cluster_number",
-      "Number of Clusters:",
-      value = default_val,
-      min = 1,
-      max = 20,
-      step = 1
+    col_fun <- circlize::colorRamp2(
+      c(-2, 0, 2), 
+      c(input$low_color, input$mid_color, input$high_color)
     )
+    
+    params_title <- paste(
+      "Cluster Method:", input$cluster_method,
+      "| Scale Method:", input$scale_method
+    )
+    
+    tryCatch({
+      n_rows <- nrow(heatmap_data())
+      plot_height <- max(8, n_rows * 0.03 + 6)  
+      
+      pdf(file.path(vis_dir, paste0("WithoutGeneName_", input$cluster_method, ".", input$cluster_number, "_", input$scale_method, ".pdf")), 
+          width = 10, height = plot_height) 
+      grid.text(params_title, 
+                x = 0.5, y = 0.98, 
+                just = "top",
+                gp = gpar(fontsize = 12, fontface = "bold"))
+      
+      pushViewport(viewport(y = 0.95, height = 0.9, just = c("center","top")))
+      ComplexHeatmap::draw(heatmap_plot(), 
+                           newpage = FALSE,
+                           padding = unit(c(2, 2, 2, 2), "mm"))
+      popViewport()
+      dev.off()
+    }, error = function(e) {
+      showNotification(paste("Failed to save plot without gene names:", e$message), type = "error")
+    })
+    
+    tryCatch({
+      df <- heatmap_data()
+      n_rows <- nrow(df)
+      
+      scale0_mat <- as.matrix(df[, grep("^scale0_", colnames(df), value = TRUE)])
+      scale1_mat <- as.matrix(df[, grep("^scale1_", colnames(df), value = TRUE)])
+      rownames(scale0_mat) <- rownames(scale1_mat) <- df$GENE
+      
+      base_height <- 8  
+      row_height <- 0.15  
+      gene_name_width <- max(nchar(df$GENE)) * 0.15 + 1  
+      
+      plot_height <- max(base_height, n_rows * row_height + 6)
+      plot_width <- 10 + gene_name_width * 0.5  
+      
+      cluster_colors <- setNames(
+        color_selected(length(unique(df$Cluster_Number))),
+        sort(unique(df$Cluster_Number))
+      )
+      
+      ht0 <- Heatmap(
+        scale0_mat,
+        name = "expression",
+        column_title = heatmap_name()[1],
+        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        show_row_names = FALSE,
+        show_column_names = FALSE,
+        col = col_fun,
+        left_annotation = rowAnnotation(
+          Cluster = as.factor(df$Cluster_Number),
+          col = list(Cluster = cluster_colors),
+          show_annotation_name = FALSE
+        ),
+        heatmap_legend_param = list(title = "Gene expression level")
+      )
+      
+      ht1 <- Heatmap(
+        scale1_mat,
+        name = "expression", 
+        column_title = heatmap_name()[2],
+        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        show_row_names = TRUE,
+        row_names_gp = gpar(fontsize = 6),  
+        row_names_max_width = unit(gene_name_width, "cm"),  
+        show_column_names = FALSE,
+        col = col_fun,
+        heatmap_legend_param = list(title = NULL)
+      )
+      
+      pdf(file.path(vis_dir, paste0("WithGeneName_", input$cluster_method,".",input$cluster_number, "_", input$scale_method, ".pdf")), 
+          width = plot_width, height = plot_height)
+      grid.text(params_title, 
+                x = 0.5, y = 0.98, 
+                just = "top",
+                gp = gpar(fontsize = 12, fontface = "bold"))
+      
+      pushViewport(viewport(y = 0.95, height = 0.9, just = c("center","top")))
+      ComplexHeatmap::draw(ht0 + ht1,
+                           heatmap_legend_side = "bottom",
+                           merge_legend = TRUE,
+                           newpage = FALSE,
+                           padding = unit(c(2, 2, 2, 2), "mm"))
+      popViewport()
+      dev.off()
+      
+      showNotification("Heatmaps saved successfully!", type = "message", duration = 5)
+    }, error = function(e) {
+      showNotification(paste("Failed to save plot with gene names:", e$message), type = "error")
+    })
   })
   
-  observeEvent(input$cluster_method, {
-    default_val <- ifelse(input$cluster_method == "kmeans", 6, 0)
-    updateNumericInput(session, "cluster_number", value = default_val)
+  observeEvent(input$save_heatmap_data, {
+    req(heatmap_data(), input$result_folder, input$pseudotime_samples)
+    
+    tryCatch({
+      df <- heatmap_data()
+      calculate_sample_points <- function(total_points, sample_num) {
+        if(sample_num == 1) return(1) 
+        interval <- total_points / (sample_num - 1)
+        
+        points <- round(seq(interval, total_points-1, by = interval))
+        points <- unique(c(1, points, total_points)) 
+        points <- sort(points)[1:sample_num]  
+        
+        return(points)
+      }
+      sample_points <- calculate_sample_points(total_points = 1000, sample_num = input$pseudotime_samples)
+      
+      extract_samples <- function(col_prefix) {
+        cols <- grep(paste0("^", col_prefix), colnames(df), value = TRUE)
+        if(length(cols) > 0) {
+          mat <- as.matrix(df[, cols, drop = FALSE])
+          sampled <- mat[, sample_points, drop = FALSE]
+          colnames(sampled) <- paste0(col_prefix, sample_points)
+          return(sampled)
+        }
+        return(NULL)
+      }
+      
+      sampled_data <- cbind(
+        df[, c("GENE", "Cluster_Number"), drop = FALSE],
+        extract_samples("raw0_"),
+        extract_samples("raw1_"), 
+        extract_samples("scale0_"),
+        extract_samples("scale1_")
+      )
+      
+      vis_dir <- file.path(input$result_folder, "visualization", "Heatmap")
+      if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+      
+      writexl::write_xlsx(
+        list(HeatmapData = sampled_data),
+        path = file.path(vis_dir, paste0("Data_", input$cluster_method,".",input$cluster_number, "_", input$scale_method, ".xlsx"))
+      )
+      
+      showNotification(
+        paste("Sampled data saved with", length(sample_points), "time points"),
+        type = "message", 
+        duration = 5
+      )
+      
+    }, error = function(e) {
+      showNotification(
+        paste("Failed to save sampled data:", e$message),
+        type = "error"
+      )
+    })
   })
   
   output$gene_ui <- renderUI({
@@ -707,4 +884,83 @@ dataVisualization_server <- function(input, output, session) {
   observeEvent(input$original_btn, {
     gene_analysis_selected(NA)  
   })
+  
+  output$download_tab_content <- renderUI({
+
+      div(
+        style = "padding: 15px;",
+        div(
+          style = "color: red; font-weight: bold; margin-bottom: 15px;",
+          icon("exclamation-triangle"), 
+          "If you have not generated any visualization files yet. Please use \"HEATMAP\" or \"GENE ANALYSIS\" to generate them first."
+        ),
+          downloadButton(
+            "download_visualization", 
+            label = "Download All Visualization Files",
+            style = "width: 100%;"
+          
+        )
+      )
+    
+  })
+  
+  
+  output$download_visualization <- downloadHandler(
+    filename = function() {
+      paste0("visualization_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".zip")
+    },
+    content = function(file) {
+      vis_dir <- file.path(input$result_folder, "visualization")
+      req(dir.exists(vis_dir))
+      showModal(modalDialog(
+        title = "Processing",
+        div(style = "text-align: center;",
+            h4("Preparing visualization files for download..."),
+            tags$div(style = "margin-top: 20px;")  
+        ),
+        footer = NULL,
+        easyClose = FALSE,
+        size = "s"
+      ))
+      
+      temp_zip <- tempfile(fileext = ".zip")
+      tryCatch({
+        zip::zipr(
+          zipfile = temp_zip,
+          files = vis_dir,
+          include_directories = FALSE
+        )
+        
+        file.copy(temp_zip, file)
+        
+        removeModal()
+        
+        showModal(modalDialog(
+          title = "Download Complete",
+          div(style = "font-size: 16px;",
+              p("Download successful!"),
+              p("Please check your default download folder."),
+              p("You can also find the files in:"),
+              tags$pre(style = "background: #f5f5f5; padding: 10px; border-radius: 5px;",
+                       vis_dir)
+          ),
+          footer = modalButton("OK"),
+          easyClose = TRUE
+        ))
+      }, error = function(e) {
+        removeModal()
+        showModal(modalDialog(
+          title = "Error",
+          div(style = "color: red;",
+              p("Failed to create download package:"),
+              tags$pre(e$message)
+          ),
+          footer = modalButton("Close"),
+          easyClose = TRUE
+        ))
+        return(NULL)
+      })
+    },
+    contentType = "application/zip"
+  )
 }

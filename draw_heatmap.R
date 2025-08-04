@@ -46,9 +46,21 @@ draw_heatmap <- function(xde_result, gene_list, cluster_method, scale_method, lo
     c(low_color, mid_color, high_color) 
   )
   
+  population_names <- names(xde_result$populationFit)
+  
+  get_suffix_number <- function(name) {
+    as.numeric(sub(".*_(\\d+)$", "\\1", name))
+  }
+  
+  name_numbers <- sapply(population_names, get_suffix_number)
+  zero_index <- which(name_numbers == 0)
+  one_index <- which(name_numbers == 1)
+  
   # Get raw data
-  raw0 <- xde_result$populationFit[[1]][valid_genes, , drop = FALSE]
-  raw1 <- xde_result$populationFit[[2]][valid_genes, , drop = FALSE]
+  raw0 <- xde_result$populationFit[[zero_index]][valid_genes, , drop = FALSE]
+  raw1 <- xde_result$populationFit[[one_index]][valid_genes, , drop = FALSE]
+  raw0_name <- population_names[zero_index]
+  raw1_name <- population_names[one_index]
   
   if (scale_method == "Together") {
     raw_both <- cbind(raw0, raw1)
@@ -59,13 +71,14 @@ draw_heatmap <- function(xde_result, gene_list, cluster_method, scale_method, lo
   } else {
     scale0 <- t(scale(t(raw0)))
     scale1 <- t(scale(t(raw1)))
+    fit_both_scaled <- cbind(scale0, scale1)
   }
   
   # Cluster the data
   if(cluster_method == "kmeans"){
     km_res <- kmeans(fit_both_scaled, centers = cluster_number, iter.max = 1000)
-    ord <- order(km_res$cluster)
-    clusters <- km_res$cluster[ord]
+    clusters <- km_res$cluster  
+    ord <- order(clusters)      
   } else {
     dist_mat <- dist(fit_both_scaled)
     hc_res <- hclust(dist_mat, method = "complete")
@@ -123,30 +136,43 @@ draw_heatmap <- function(xde_result, gene_list, cluster_method, scale_method, lo
   
   ht0 <- Heatmap(
     scale0,
-    name = "male",
+    name = "heatmap",  
+    column_title = raw0_name,  
+    column_title_gp = gpar(fontsize = 10, fontface = "bold"),
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = FALSE,
     show_column_names = FALSE,
     col = col_fun,
-    left_annotation = row_ha
+    left_annotation = row_ha,
+    heatmap_legend_param = list(
+      title = "Gene expression level"  
+    )
   )
   
   ht1 <- Heatmap(
     scale1,
-    name = "female",
+    name = "heatmap",  
+    column_title = raw1_name,  
+    column_title_gp = gpar(fontsize = 10, fontface = "bold"),
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = FALSE,
     show_column_names = FALSE,
-    col = col_fun
+    col = col_fun,
+    heatmap_legend_param = list(
+      title = NULL  
+    )
   )
-  
-  p <- draw(ht0 + ht1, merge_legend = TRUE, heatmap_legend_side = "bottom")
+  p <- draw(
+    ht0 + ht1,
+    heatmap_legend_side = "bottom",
+    merge_legend = TRUE)
   
   list(
     plot = p,
     df = df,
+    names = c(raw0_name, raw1_name),
     warning_message = warning_msg
   )
 }
