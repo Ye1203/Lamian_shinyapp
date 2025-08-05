@@ -62,7 +62,7 @@ draw_heatmap <- function(xde_result, gene_list, cluster_method, scale_method, lo
   raw0_name <- population_names[zero_index]
   raw1_name <- population_names[one_index]
   
-  if (scale_method == "Together") {
+  if (scale_method == "Both groups together") {
     raw_both <- cbind(raw0, raw1)
     fit_both_scaled <- t(scale(t(raw_both))) 
     ncol_raw0 <- ncol(raw0)

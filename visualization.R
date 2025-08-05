@@ -26,7 +26,7 @@ dataVisualization_server <- function(input, output, session) {
   gene_plot2 <- reactiveVal(NULL)
   gene_plot3 <- reactiveVal(NULL)
   show_points <- reactiveVal(FALSE)
-  remove_zero <- reactiveVal(FALSE)
+  included_zero <- reactiveVal(FALSE)
   current_dims <- reactiveVal(c(1, 2))
   gene_list <- reactiveVal()
   heatmap_plot <- reactiveVal(NULL)
@@ -139,7 +139,7 @@ dataVisualization_server <- function(input, output, session) {
         tabPanel(
           title = "DOWNLOAD VISUALIZATION",
           value = "download_tab",
-          uiOutput("download_tab_content")  # 动态内容区域
+          uiOutput("download_tab_content")  
         )
       )
     }
@@ -202,8 +202,8 @@ dataVisualization_server <- function(input, output, session) {
           selectInput(
             "scale_method", 
             "Scale:",
-            choices = c("Together", "Group Split (TREND)"),
-            selected = "Together"
+            choices = c("Both groups together", "Each group separately"),
+            selected = "Both groups together"
           ),
           
           fluidRow(
@@ -663,7 +663,7 @@ dataVisualization_server <- function(input, output, session) {
                  checkboxInput("show_points", "Show individual data points", 
                                value = FALSE, width = "100%")),
           column(6, 
-                 checkboxInput("remove_zero", "Remove zero-expression cells", 
+                 checkboxInput("included_zero", "Include zero-expression cells", 
                                value = FALSE, width = "100%"))
         ),
         fluidRow(
@@ -687,8 +687,8 @@ dataVisualization_server <- function(input, output, session) {
     show_points(input$show_points)
   })
   
-  observeEvent(input$remove_zero, {
-    remove_zero(input$remove_zero)
+  observeEvent(input$included_zero, {
+    included_zero(input$included_zero)
   })
   
   observeEvent(input$save_plot, {
@@ -845,7 +845,7 @@ dataVisualization_server <- function(input, output, session) {
   
   all_samples <- levels(plot_df$Sample)
   
-  if (remove_zero()) {
+  if (!included_zero()) {
     plot_df <- plot_df[plot_df$Expression > 0, ]
     plot_df$Sample <- factor(plot_df$Sample, levels = all_samples)
   }
@@ -864,7 +864,7 @@ dataVisualization_server <- function(input, output, session) {
          title = gene_name) +
     theme_minimal() +
     facet_wrap(~ Sample, nrow = 1, drop = FALSE) +  
-    {if (remove_zero() && length(setdiff(all_samples, unique(plot_df$Sample)))) {
+    {if (included_zero() && length(setdiff(all_samples, unique(plot_df$Sample)))) {
         geom_text(
           data = data.frame(Sample = setdiff(all_samples, unique(plot_df$Sample))),
           x = mean(range(reduced_dim[,1])),
