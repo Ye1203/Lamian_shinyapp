@@ -17,9 +17,11 @@ step4 <- function(obj, sce, non_zero_num, lower_quantile, upper_quantile, select
   inlier <- pseudotime >= Q1 & pseudotime <= Q3
   
   keep_cells <- names(pseudotime)[inlier]
+  sce_sub <- sce[, keep_cells]
   obj_sub <- subset(obj, cells = keep_cells, features = gene_list)
   return(list(
     obj = obj_sub,
+    sce_sub = sce_sub,
     non_zero_num = non_zero_num,
     lower_quantile = lower_quantile,
     upper_quantile = upper_quantile

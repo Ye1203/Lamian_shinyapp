@@ -803,7 +803,7 @@ server <- function(input, output, session) {
       
       step5_result <- step5(
         data = processedObj(),
-        sce = step3_result(),
+        sce = step4_result()$sce,
         selected_lineage = input$selected_lineage,
         output_file_path = output_file_path,
         design = design_conv,
