@@ -23,7 +23,7 @@ color_selected <- function(color_length) {
   return(colors)
 }
 
-draw_heatmap <- function(xde_result, gene_list, cluster_method, scale_method, low_color, mid_color, high_color, cluster_number) {
+draw_heatmap <- function(xde_result, gene_list, cluster_method, scale_by, cluster_by, low_color, mid_color, high_color, cluster_number) {
   warning_msg <- NA
   set.seed(123)
   valid_genes <- intersect(gene_list, rownames(xde_result$expr))
@@ -62,7 +62,8 @@ draw_heatmap <- function(xde_result, gene_list, cluster_method, scale_method, lo
   raw0_name <- population_names[zero_index]
   raw1_name <- population_names[one_index]
   
-  if (scale_method == "Both groups together") {
+  if (scale_by == cluster_by){
+  if (scale_by == "both") {
     raw_both <- cbind(raw0, raw1)
     fit_both_scaled <- t(scale(t(raw_both))) 
     ncol_raw0 <- ncol(raw0)
@@ -73,18 +74,34 @@ draw_heatmap <- function(xde_result, gene_list, cluster_method, scale_method, lo
     scale1 <- t(scale(t(raw1)))
     fit_both_scaled <- cbind(scale0, scale1)
   }
-  
-  # Cluster the data
-  if(cluster_method == "kmeans"){
-    km_res <- kmeans(fit_both_scaled, centers = cluster_number, iter.max = 1000)
-    clusters <- km_res$cluster  
-    ord <- order(clusters)      
-  } else {
-    dist_mat <- dist(fit_both_scaled)
-    hc_res <- hclust(dist_mat, method = "complete")
-    clusters <- cutree(hc_res, k = cluster_number)
-    ord <- hc_res$order
-  }
+  }else if(scale_by != cluster_by){
+    if (scale_by == "both") {
+      raw_both <- cbind(raw0, raw1)
+      fit_both_scaled <- t(scale(t(raw_both)))
+      ncol_raw0 <- ncol(raw0)
+      scale0 <- fit_both_scaled[, 1:ncol_raw0, drop = FALSE]
+      scale1 <- fit_both_scaled[, (ncol_raw0 + 1):ncol(fit_both_scaled), drop = FALSE]
+      scale0_tmp <- t(scale(t(raw0)))
+      scale1_tmp <- t(scale(t(raw1)))
+      fit_both_scaled <- cbind(scale0_tmp, scale1_tmp)
+    }else if(scale_by == "separately"){
+      scale0 <- t(scale(t(raw0)))
+      scale1 <- t(scale(t(raw1)))
+      raw_both <- cbind(raw0, raw1)
+      fit_both_scaled <- t(scale(t(raw_both)))
+    }}
+    
+    # Cluster the data
+    if(cluster_method == "kmeans"){
+      km_res <- kmeans(fit_both_scaled, centers = cluster_number, iter.max = 1000)
+      clusters <- km_res$cluster  
+      ord <- order(clusters)      
+    } else {
+      dist_mat <- dist(fit_both_scaled)
+      hc_res <- hclust(dist_mat, method = "complete")
+      clusters <- cutree(hc_res, k = cluster_number)
+      ord <- hc_res$order
+    }
   
   # Reorder all data
   gene_names <- valid_genes[ord]

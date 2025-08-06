@@ -135,7 +135,8 @@ dataVisualization_server <- function(input, output, session) {
       navlistPanel(
         widths = c(2, 10),
         tabPanel("HEATMAP", uiOutput("heatmap_ui")),
-        tabPanel("GENE ANALYSIS", uiOutput("gene_ui")),
+        tabPanel("SINGLE GENE ANALYSIS", uiOutput("gene_ui")),
+        tabPanel("MULTI GENE ANALYSIS", uiOutput("multi_gene_ui")),
         tabPanel(
           title = "DOWNLOAD VISUALIZATION",
           value = "download_tab",
@@ -199,11 +200,22 @@ dataVisualization_server <- function(input, output, session) {
             inline = TRUE
           ),
           
-          selectInput(
-            "scale_method", 
-            "Scale:",
-            choices = c("Both groups together", "Each group separately"),
-            selected = "Both groups together"
+          radioButtons(
+            "scale_by",
+            "Scale By:",
+            choices = c("Both groups together" = "both", 
+                        "Each group separately" = "separately"),
+            selected = "both",
+            inline = FALSE
+          ),
+          
+          radioButtons(
+            "cluster_by",
+            "Cluster By:",
+            choices = c("Both groups together" = "both", 
+                        "Each group separately" = "separately"),
+            selected = "both",
+            inline = FALSE
           ),
           
           fluidRow(
@@ -261,21 +273,6 @@ dataVisualization_server <- function(input, output, session) {
     updateTextAreaInput(session, "heatmap_gene_list", value = "")
   })
   
-  observeEvent(input$submit_genes, {
-    req(input$heatmap_gene_list)
-    
-    genes <- strsplit(input$heatmap_gene_list, "\n")[[1]] %>% 
-      trimws() %>% 
-      .[. != ""]  
-    
-    if (length(genes) > 0) {
-      gene_list(genes)
-      showNotification(paste("Submitted", length(genes), "genes"), type = "message")
-    } else {
-      showNotification("Gene list is empty!", type = "warning")
-    }
-  })
-  
   output$cluster_num_ui <- renderUI({
     req(input$cluster_method)
     
@@ -327,7 +324,8 @@ dataVisualization_server <- function(input, output, session) {
         xde_result = xde_result(),
         gene_list = genes,
         cluster_method = input$cluster_method,
-        scale_method = input$scale_method,
+        scale_by = input$scale_by,
+        cluster_by = input$cluster_by,
         low_color = input$low_color,
         mid_color = input$mid_color,
         high_color = input$high_color,
@@ -371,7 +369,7 @@ dataVisualization_server <- function(input, output, session) {
   observeEvent(input$save_heatmap_plot, {
     req(heatmap_plot(), heatmap_data(), input$result_folder)
     
-    vis_dir <- file.path(input$result_folder, "visualization", "Heatmap")
+    vis_dir <- file.path(input$result_folder, "visualization", "HEATMAP")
     if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
     
     col_fun <- circlize::colorRamp2(
@@ -381,14 +379,15 @@ dataVisualization_server <- function(input, output, session) {
     
     params_title <- paste(
       "Cluster Method:", input$cluster_method,
-      "| Scale Method:", input$scale_method
+      "| Scale By:", input$scale_by,
+      "| Cluster By:", input$cluster_by
     )
     
     tryCatch({
       n_rows <- nrow(heatmap_data())
       plot_height <- max(8, n_rows * 0.03 + 6)  
       
-      pdf(file.path(vis_dir, paste0("WithoutGeneName_", input$cluster_method, ".", input$cluster_number, "_", input$scale_method, ".pdf")), 
+      pdf(file.path(vis_dir, paste0("WithoutGeneName_", input$cluster_method, ".", input$cluster_number, "_", input$scale_by,".", input$cluster_by, ".pdf")), 
           width = 10, height = plot_height) 
       grid.text(params_title, 
                 x = 0.5, y = 0.98, 
@@ -458,7 +457,7 @@ dataVisualization_server <- function(input, output, session) {
         heatmap_legend_param = list(title = NULL)
       )
       
-      pdf(file.path(vis_dir, paste0("WithGeneName_", input$cluster_method,".",input$cluster_number, "_", input$scale_method, ".pdf")), 
+      pdf(file.path(vis_dir, paste0("WithGeneName_", input$cluster_method,".",input$cluster_number, "_", input$scale_by, ".", input$cluster_by, ".pdf")), 
           width = plot_width, height = plot_height)
       grid.text(params_title, 
                 x = 0.5, y = 0.98, 
@@ -510,18 +509,19 @@ dataVisualization_server <- function(input, output, session) {
       
       sampled_data <- cbind(
         df[, c("GENE", "Cluster_Number"), drop = FALSE],
-        extract_samples("raw0_"),
-        extract_samples("raw1_"), 
         extract_samples("scale0_"),
-        extract_samples("scale1_")
+        extract_samples("scale1_"),
+        extract_samples("raw0_"),
+        extract_samples("raw1_") 
+
       )
       
-      vis_dir <- file.path(input$result_folder, "visualization", "Heatmap")
+      vis_dir <- file.path(input$result_folder, "visualization", "HEATMAP")
       if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
       
       writexl::write_xlsx(
         list(HeatmapData = sampled_data),
-        path = file.path(vis_dir, paste0("Data_", input$cluster_method,".",input$cluster_number, "_", input$scale_method, ".xlsx"))
+        path = file.path(vis_dir, paste0("Data_", input$cluster_method,".",input$cluster_number, "_", input$scale_by, ".", input$cluster_by, ".xlsx"))
       )
       
       showNotification(
@@ -713,6 +713,8 @@ dataVisualization_server <- function(input, output, session) {
       } else {
         gene_dir <- file.path(vis_dir, gene_analysis_selected())
         if (!dir.exists(gene_dir)) dir.create(gene_dir)
+        combined_dir <- file.path(vis_dir, "COMBINED")
+        if (!dir.exists(combined_dir)) dir.create(combined_dir)
         
         pdf(file.path(gene_dir, "PopulationPlot.pdf"), width = 8, height = 6)
         print(gene_plot1())
@@ -724,6 +726,50 @@ dataVisualization_server <- function(input, output, session) {
         
         pdf(file.path(gene_dir, "ReductionSplitPlot.pdf"), width = 16, height = 6)
         print(gene_plot3())
+        dev.off()
+        
+        pdf(file.path(combined_dir, paste0(gene_analysis_selected(), ".pdf")), width = 20, height = 12)
+        
+        grid.newpage()
+
+        pushViewport(viewport(x = 0.05, y = 0.98, width = 0.15, height = 0.95, just = c("left","top")))
+        
+        gene_stats <- xde_result()$statistics[gene_analysis_selected(), , drop = FALSE]
+        info_text <- paste0(
+          "Gene:\n\t\t", gene_analysis_selected(), "\n\n",
+          paste(
+            sapply(colnames(gene_stats), function(col) {
+              paste0(col, ":\n\t\t", formatC(gene_stats[, col], format = "e", digits = 2))
+            }),
+            collapse = "\n\n"
+          )
+        )
+        
+        grid.text(
+          info_text,
+          x = 0,                 
+          y = 1,                 
+          gp = gpar(col = "darkred", fontface = "bold", cex = 1.2),
+          just = c("left", "top") 
+        )
+        
+        popViewport() 
+
+        
+        # p1
+        pushViewport(viewport(x = 0.22, y = 0.98, width = 0.33, height = 0.45, just = c("left","top")))
+        print(gene_plot1(), newpage = FALSE)
+        popViewport()
+        
+        # p2
+        pushViewport(viewport(x = 0.58, y = 0.98, width = 0.39, height = 0.45, just = c("left","top")))
+        print(gene_plot2(), newpage = FALSE)
+        popViewport()
+        
+        pushViewport(viewport(x = 0.22, y = 0.5, width = 0.75, height = 0.48, just = c("left","top")))
+        print(gene_plot3(), newpage = FALSE)
+        popViewport()
+        
         dev.off()
         
         showNotification(paste("Gene", gene_analysis_selected(), "plots saved successfully!"), 
@@ -743,7 +789,8 @@ dataVisualization_server <- function(input, output, session) {
                         dimred = "Reduction", 
                         colour_by = "cluster",
                         ncomponents = dims,  
-                        point_alpha = 1) +
+                        point_alpha = 1,
+                        point_size = 0.5) +
       labs(
         x = colnames(rd)[1],  
         y = colnames(rd)[2],  
@@ -752,8 +799,13 @@ dataVisualization_server <- function(input, output, session) {
       theme_minimal() +
       theme(
         legend.title = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(1.5, "cm"),  
         axis.title = element_text(size = 16)
-      )
+      )+
+      guides(colour = guide_legend(
+        override.aes = list(size = 5)   
+      ))
     
     gene_plot1_NA(p)
     return(p)
@@ -776,6 +828,7 @@ dataVisualization_server <- function(input, output, session) {
       ggtitle("Pseudotime") +
       theme_minimal()+
       theme(legend.title = element_text(size = 14),
+            legend.text = element_text(size = 14),
             axis.title = element_text(size = 16))
     
     gene_plot2_NA(p)
@@ -787,10 +840,10 @@ dataVisualization_server <- function(input, output, session) {
     p <- plotGenePopulation(xde_result(), gene_analysis_selected(), type = "variable") + theme(
       legend.title = element_text(size = 14),     
       legend.text = element_text(size = 12),      
-      axis.title.x = element_text(size = 16),      
-      axis.title.y = element_text(size = 16),     
-      axis.text.x = element_text(size = 14),       
-      axis.text.y = element_text(size = 14)        
+      axis.title.x = element_text(size = 14),      
+      axis.title.y = element_text(size = 14),     
+      axis.text.x = element_text(size = 12),       
+      axis.text.y = element_text(size = 12)        
     )
     gene_plot1(p)
     return(p)
@@ -812,13 +865,14 @@ dataVisualization_server <- function(input, output, session) {
     p <- ggplot(plot_df, aes(x = pseudotime, y = expr, color = Sample)) +
       geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
       scale_color_brewer(palette = "Set2") + 
-      theme_minimal() +
-      labs(x = "Pseudotime", y = "Expression Level") + 
-      theme(
+      theme_classic() +
+      labs(x = "Pseudotime", y = "Expression Level") + theme(
         legend.title = element_text(size = 14),     
         legend.text = element_text(size = 12),      
-        axis.title.x = element_text(size = 16),      
-        axis.title.y = element_text(size = 16)      
+        axis.title.x = element_text(size = 14),      
+        axis.title.y = element_text(size = 14),     
+        axis.text.x = element_text(size = 12),       
+        axis.text.y = element_text(size = 12)        
       )
     
     if (show_points()) {
@@ -860,8 +914,7 @@ dataVisualization_server <- function(input, output, session) {
     } +
     scale_color_viridis_c() +
     labs(x = colnames(reduced_dim)[1], 
-         y = colnames(reduced_dim)[2],
-         title = gene_name) +
+         y = colnames(reduced_dim)[2]) +
     theme_minimal() +
     facet_wrap(~ Sample, nrow = 1, drop = FALSE) +  
     {if (included_zero() && length(setdiff(all_samples, unique(plot_df$Sample)))) {
@@ -875,15 +928,299 @@ dataVisualization_server <- function(input, output, session) {
           label.size = 0.5
         )
       }
-    }
+    } +
+    theme(
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      strip.text.x = element_text(size = 10)
+    )
   
   gene_plot3(p)
   return(p)
 })
   
-  observeEvent(input$original_btn, {
-    gene_analysis_selected(NA)  
+  output$multi_gene_ui <- renderUI({
+    sig_genes <- rownames(stat()[stat()$fdr.overall < 0.05, ])
+    fluidRow(
+      column(
+        width = 3,
+        wellPanel(
+          style = "height: 90vh; overflow-y: auto;",
+          h4("Gene List Input", class = "text-primary"),
+          hr(),
+          textAreaInput(
+            inputId = "multi_gene_list",
+            label = "Enter genes (one per line):",
+            value = if(length(sig_genes) > 0) paste(sig_genes, collapse = "\n") else "",
+            rows = 10,
+            placeholder = "Paste genes here:\nGene_A\nGene_B\nGene_C"
+          ),
+          fluidRow(
+            column(6, actionButton("load_default_multi", "fdr.overall < 0.05", 
+                                   class = "btn-primary", width = "100%")),
+            column(6, actionButton("clear_genes_multi", "Clear All", 
+                                   class = "btn-danger", width = "100%"))
+          ),
+          hr(),
+          fluidRow(
+            column(6, 
+                   checkboxInput("show_points_multi", "Show individual data points", 
+                                 value = FALSE, width = "100%")),
+            column(6, 
+                   checkboxInput("included_zero_multi", "Include zero-expression cells", 
+                                 value = FALSE, width = "100%"))
+          ),
+          hr(),
+          actionButton("save_multi_gene", "Start Analysis", 
+                       class = "btn btn-success", width = "100%")
+        )
+      ),
+      column(
+        width = 9,
+        wellPanel(
+          style = "height: 90vh; overflow-y: auto;",
+          h4("Analysis Progress", class = "text-primary"),
+          hr(),
+          p("Click 'Start Analysis' to begin processing. A progress window will appear.")
+        )
+      )
+    )
   })
+  
+  observeEvent(input$load_default_multi, {
+    sig_genes <- rownames(stat()[stat()$fdr.overall < 0.05, ])
+    updateTextAreaInput(
+      session, 
+      "multi_gene_list",
+      value = if(length(sig_genes) == 0){"NO SIGINIFICANT GENE"}else{paste(sig_genes, collapse = "\n")}
+    )
+  })
+  
+  observeEvent(input$clear_genes_multi, {
+    updateTextAreaInput(session, "multi_gene_list", value = "")
+  })
+  
+  observeEvent(input$save_multi_gene, {
+    req(input$multi_gene_list)
+    combined_dir <- file.path(input$result_folder, "visualization", "COMBINED")
+    if (!dir.exists(combined_dir)) dir.create(combined_dir, recursive = TRUE)
+    
+    gene_list <- unlist(strsplit(input$multi_gene_list, "\n"))
+    gene_list <- trimws(gene_list)  
+    gene_list <- gene_list[gene_list != ""]  
+    
+    if (length(gene_list) == 0) {
+      showNotification("No genes to analyze!", type = "warning")
+      return()
+    }
+    
+    progress_log <- paste0(Sys.time(), ": Starting multi-gene analysis...\n")
+    
+    showModal(modalDialog(
+      title = "Processing Genes",
+      tagList(
+        div(style = "height: 400px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;",
+            pre(id = "progress-log", style = "white-space: pre-wrap; word-break: break-all; font-family: monospace;",
+                progress_log)
+        )
+      ),
+      footer = NULL,
+      size = "l",
+      easyClose = FALSE
+    ))
+    
+    current_dims_value <- current_dims()
+    show_points_value <- input$show_points_multi
+    included_zero_value <- input$included_zero_multi
+    
+    tryCatch({
+      for (i in seq_along(gene_list)) {
+        if (cancel_processing) break
+        
+        gene <- gene_list[i]
+        
+        progress_log <- paste0(progress_log, Sys.time(), ": Processing gene '", gene, "' (", i, "/", length(gene_list), ")...\n")
+        
+        shinyjs::html(id = "progress-log", html = progress_log, add = FALSE)
+        
+        shinyjs::runjs("var elem = document.getElementById('progress-log'); elem.scrollTop = elem.scrollHeight;")
+        
+        Sys.sleep(0.05)
+        shinyjs::runjs("1+1")  
+        
+        tryCatch({
+          if (!gene %in% rownames(xde_result()$statistics)) {
+            progress_log <- paste0(progress_log, Sys.time(), ": Gene '", gene, "' not found in results!\n")
+            next
+          }
+          
+          # Create PDF file for this gene
+          pdf_file <- file.path(combined_dir, paste0(gene, ".pdf"))
+          pdf(pdf_file, width = 20, height = 12)
+          
+          # Ensure PDF device closes even on error
+          on.exit({
+            if (dev.cur() > 1) dev.off()
+          }, add = TRUE)
+          
+          # Gene info panel
+          pushViewport(viewport(x = 0.05, y = 0.98, width = 0.15, height = 0.95, just = c("left","top")))
+          
+          gene_stats <- xde_result()$statistics[gene, , drop = FALSE]
+          info_text <- paste0(
+            "Gene:\n       ", gene, "\n\n",
+            paste(
+              sapply(colnames(gene_stats), function(col) {
+                paste0(col, ":\n        ", formatC(gene_stats[, col], format = "e", digits = 2))
+              }),
+              collapse = "\n\n"
+            )
+          )
+          
+          grid.text(
+            info_text,
+            x = 0,                 
+            y = 1,                 
+            gp = gpar(col = "darkred", fontface = "bold", cex = 1.2, fontfamily = "mono"),
+            just = c("left", "top") 
+          )
+          
+          popViewport() 
+          
+          # Population plot
+          pushViewport(viewport(x = 0.22, y = 0.98, width = 0.33, height = 0.45, just = c("left","top")))
+          p1 <- plotGenePopulation(xde_result(), gene, type = "variable") + 
+            theme(
+              legend.title = element_text(size = 14),     
+              legend.text = element_text(size = 12),      
+              axis.title.x = element_text(size = 14),      
+              axis.title.y = element_text(size = 14),     
+              axis.text.x = element_text(size = 12),       
+              axis.text.y = element_text(size = 12)        
+            )
+          print(p1, newpage = FALSE)
+          popViewport()
+          
+          # Pseudotime plot
+          pushViewport(viewport(x = 0.58, y = 0.98, width = 0.39, height = 0.45, just = c("left","top")))
+          long_expr <- data.frame(
+            Cell = colnames(xde_result()$expr),
+            expr = as.numeric(xde_result()$expr[gene, colnames(xde_result()$expr)]),
+            pseudotime = xde_result()$pseudotime[colnames(xde_result()$expr)]
+          )
+          
+          cellanno_sub <- xde_result()$cellanno[xde_result()$cellanno$Cell %in% colnames(xde_result()$expr), ]
+          plot_df <- merge(cellanno_sub, long_expr, by = "Cell")
+          
+          p2 <- ggplot(plot_df, aes(x = pseudotime, y = expr, color = Sample)) +
+            geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
+            scale_color_brewer(palette = "Set2") + 
+            theme_classic() +
+            labs(x = "Pseudotime", y = "Expression Level") + 
+            theme(
+              legend.title = element_text(size = 14),     
+              legend.text = element_text(size = 12),      
+              axis.title.x = element_text(size = 14),      
+              axis.title.y = element_text(size = 14),     
+              axis.text.x = element_text(size = 12),       
+              axis.text.y = element_text(size = 12)        
+            )
+          
+          if (show_points_value) {
+            p2 <- p2 + geom_point(alpha = 0.3, size = 1)
+          }
+          print(p2, newpage = FALSE)  
+          popViewport()
+          
+          # Reduction plot
+          pushViewport(viewport(x = 0.22, y = 0.5, width = 0.75, height = 0.48, just = c("left","top")))
+          reduced_dim <- reducedDim(sce(), "Reduction")[, current_dims_value]
+          expr_values <- as.numeric(xde_result()$expr[gene, colnames(sce())])
+          
+          plot_df <- data.frame(
+            Dim1 = reduced_dim[,1],
+            Dim2 = reduced_dim[,2],
+            Expression = expr_values,
+            Sample = factor(sce()$sample) 
+          )
+          
+          all_samples <- levels(plot_df$Sample)
+          
+          if (!included_zero_value) {
+            plot_df <- plot_df[plot_df$Expression > 0, ]
+            plot_df$Sample <- factor(plot_df$Sample, levels = all_samples)
+          }
+          
+          p3 <- ggplot(plot_df, aes(x = Dim1, y = Dim2)) +
+            {
+              if (nrow(plot_df) > 0) {
+                geom_point(aes(color = Expression), size = 0.5, alpha = 0.8)
+              } else {
+                geom_blank()
+              }
+            } +
+            scale_color_viridis_c() +
+            labs(x = colnames(reduced_dim)[1], 
+                 y = colnames(reduced_dim)[2]) +
+            theme_minimal() +
+            facet_wrap(~ Sample, nrow = 1, drop = FALSE) +  
+            {if (included_zero_value && length(setdiff(all_samples, unique(plot_df$Sample)))) {
+              geom_text(
+                data = data.frame(Sample = setdiff(all_samples, unique(plot_df$Sample))),
+                x = mean(range(reduced_dim[,1])),
+                y = mean(range(reduced_dim[,2])),
+                label = "No expression",
+                color = "black",
+                inherit.aes = FALSE,
+                label.size = 0.5
+              )
+            }} +
+            theme(
+              axis.title.x = element_text(size = 14),
+              axis.title.y = element_text(size = 14),
+              strip.text.x = element_text(size = 10)
+            )
+          
+          print(p3, newpage = FALSE) 
+          popViewport()
+          
+          dev.off()
+          
+          progress_log <- paste0(progress_log, Sys.time(), ": Gene '", gene, "' finished.\n")
+          
+        }, error = function(e) {
+          if (dev.cur() > 1) dev.off()
+          progress_log <<- paste0(progress_log, Sys.time(), ": Error processing gene '", gene, "' - ", e$message, "\n")
+        })
+        
+        shinyjs::html(id = "progress-log", html = progress_log, add = FALSE)
+        shinyjs::runjs("var elem = document.getElementById('progress-log'); elem.scrollTop = elem.scrollHeight;")
+        
+        Sys.sleep(0.05)
+      }
+      
+      if (cancel_processing) {
+        progress_log <- paste0(progress_log, Sys.time(), ": Processing cancelled!\n")
+      } else {
+        progress_log <- paste0(progress_log, Sys.time(), ": DONE! Processed ", length(gene_list), " genes.\n The window will automatically close after 3 seconds.")
+      }
+      
+      shinyjs::html(id = "progress-log", html = progress_log, add = FALSE)
+      shinyjs::runjs("var elem = document.getElementById('progress-log'); elem.scrollTop = elem.scrollHeight;")
+      
+      delay(3000, {
+        removeModal()
+        if (!cancel_processing) {
+          showNotification("Multi-gene analysis completed!", type = "message")
+        }
+      })
+      
+    }, error = function(e) {
+      removeModal()
+      showNotification(paste("Error in processing:", e$message), type = "error")
+    })
+  })
+  
   
   output$download_tab_content <- renderUI({
 
@@ -903,7 +1240,6 @@ dataVisualization_server <- function(input, output, session) {
       )
     
   })
-  
   
   output$download_visualization <- downloadHandler(
     filename = function() {
