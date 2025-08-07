@@ -58,8 +58,6 @@ The typical workflow includes loading your Seurat object, running normalization,
 
 ## Contact
 
-For any questions or issues, please feel free to open an issue in this repository or contact the maintainer.
+For any questions or issues, please feel free to open an issue in this repository or contact Bingtian Ye (btye@bu.edu or biangtian@icloud.com).
 
 ---
-
-**Note:** Make sure to use this modified version of Lamian to avoid runtime errors and take advantage of the enhanced stability and visualization features.
