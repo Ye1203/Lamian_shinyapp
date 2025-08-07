@@ -1,6 +1,6 @@
 # Lamian Helper Package
 
-This package provides a convenient interface to use **Lamian**, a tool designed to compare expression changes over pseudotime across different conditions. For detailed information on Lamian, please refer to Professor Wenpin Zhou's original repository:  
+This package provides a convenient interface to use **Lamian**, a tool designed to compare expression changes over pseudotime across different conditions. For detailed information on Lamian, please refer to Professor Wenpin Hou's original repository:  
 https://github.com/Winnie09/Lamian/tree/master
 
 ---
