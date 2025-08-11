@@ -1,15 +1,14 @@
 color_selected <- function(color_length) {
   color_total <- c(
     "#e6194b","#ffe119","#46f0f0","#f58231","#bcf60c", 
-    "#ff00ff","#9a6324","#fffac8","#e6beff","#00bfff", 
-    "#ffd8b1","#00ff7f","#f5a9bc","#1e90ff","#ffa500",
-    "#98fb98","#911eb4","#afeeee","#fa8072","#9acd32",
-    "#3cb44b","#000075","#808000","#cd5c5c","#dda0dd",
-    "#40e0d0","#ff69b4","#8a2be2","#c71585","#5f9ea0",
-    "#dc143c","#87cefa","#ff6347","#9932cc","#00ced1",
-    "#ff4500","#6a5acd","#b0e0e6","#d2691e","#a9a9f5",
-    "#adff2f","#8b0000","#7fffd4","#00fa9a","#ba55d3",
-    "#2e8b57","#ffdab9","#b22222","#ffe4e1","#7b68ee"
+    "#ff00ff","#9a6324","#00bfff","#f5a9bc","#1e90ff",
+    "#ffa500","#98fb98","#911eb4","#afeeee","#fa8072",
+    "#9acd32","#3cb44b","#000075","#808000","#cd5c5c",
+    "#dda0dd","#40e0d0","#ff69b4","#8a2be2","#c71585",
+    "#5f9ea0","#dc143c","#87cefa","#ff6347","#9932cc",
+    "#00ced1","#ff4500","#6a5acd","#b0e0e6","#d2691e",
+    "#a9a9f5","#adff2f","#8b0000","#7fffd4","#00fa9a",
+    "#ba55d3","#2e8b57","#b22222","#7b68ee"
   )
   
   if (color_length <= length(color_total)) {

@@ -1,6 +1,18 @@
 dataVisualizationUI <- function() {
   fluidPage(
     shinyjs::useShinyjs(),
+    tags$head(
+      tags$style(HTML("
+        .description-panel {
+          background: #f8f9fa; 
+          padding: 15px; 
+          border-radius: 5px; 
+          border: 1px solid #ddd;
+          margin-bottom: 20px;
+          transition: opacity 0.3s ease;
+        }
+      "))
+    ),
     fluidRow(
       column(12, tags$label("Result folder"))
     ),
@@ -32,7 +44,7 @@ dataVisualization_server <- function(input, output, session) {
   heatmap_plot <- reactiveVal(NULL)
   heatmap_data <- reactiveVal(NULL)
   heatmap_name <- reactiveVal(NULL)
-  
+  result_visulization_folder <- reactiveVal(NULL)
   observe({
     if (nchar(input$result_folder) > 0) {
       shinyjs::enable("read_xde")
@@ -132,19 +144,158 @@ dataVisualization_server <- function(input, output, session) {
              )
       )
     } else {
-      navlistPanel(
-        widths = c(2, 10),
-        tabPanel("HEATMAP", uiOutput("heatmap_ui")),
-        tabPanel("SINGLE GENE ANALYSIS", uiOutput("gene_ui")),
-        tabPanel("MULTI GENE ANALYSIS", uiOutput("multi_gene_ui")),
-        tabPanel(
-          title = "DOWNLOAD VISUALIZATION",
-          value = "download_tab",
-          uiOutput("download_tab_content")  
+      tagList(
+        navlistPanel(
+          id = "navlist",
+          widths = c(2, 10),
+          
+          # HEATMAP Tab
+          tabPanel("HEATMAP", 
+                   tags$div(
+                     id = "heatmap_desc", class = "description-panel",
+                     style = "display: none;",
+                     h3("HEATMAP Description"),
+                     h4("Draw a heatmap for specified genes.", style = "color: grey;"),
+                     hr(),
+                     h4("1. Enter the genes list"),
+                     p("The default gene list is for genes with an fdr.overall < 0.05. You can also enter your own gene list, separated by line breaks (you can directly copy and paste multiple rows of gene names from the Excel file downloaded using \"Download statistical results\")."),
+                     p("a. Click \"",
+                       tags$span(style = "color:#4678B2; font-weight:bold", "fdr.overall < 0.05"),
+                       "\" to use the default list of genes with an fdr.overall value < 0.05."),
+                     p("b. Click \"",
+                       tags$span(style = "color:#C95C54; font-weight:bold", "Clear All"),
+                       "\" to clear all genes."),
+                     tags$hr(),
+                     h4("2. Draw heatmap"),
+                     p("a. ", tags$b("Clustering Method."), " Clustering Method includes Hierarchical clustering and K-means clustering. You can click to select."
+                     ),
+                     p("b. ", tags$b("Scale By."), " Scale By has two options: Both groups together and Each group separately. Selecting Both groups together will combine data from two conditions first and then perform z-scaling, allowing you to observe the absolute expression difference between the two conditions. Selecting Each group separately will perform z-scaling separately on each condition's data before merging, which helps observe trend differences between the two conditions. The final choice affects the expression values (from low to high) shown in the heatmap for the two conditions."
+                     ),
+                     p("c. ", tags$b("Cluster By."), " Cluster By has two options: Both groups together and Each group separately. It uses the scaled data obtained previously to perform classification, impacting the clustering distribution shown on the left side of the heatmap (and also changes the gene order)."
+                     ),
+                     p("d. ", tags$b("Select Color."), " Select color consists of three parts: low, mid, and high. You can click on the respective color box to reselect the color. The default range is [-2, 2], meaning scaled values below -2 will be colored as Low color, above 2 as High color, and 0 as Mid color."
+                     ),
+                     p("e. ", tags$b("Number of Clusters."), " Number of Clusters is used to select the number of clusters. When the Clustering Method is Hierarchical, Number of Clusters only changes the cluster distribution on the left side without changing gene order. When the Clustering Method is K-means, Number of Clusters changes both the cluster distribution and gene order (since K-means recalculates based on the number of clusters)."
+                     ),
+                     p("f. ", tags$b("Draw Plot."), " After setting parameters, click the \"",
+                       tags$span(style = "color:#74B666; font-weight:bold", "Draw Plot"),
+                       "\" button to draw the heatmap. Please wait patiently for rendering to complete (after the heatmap appears) before performing other operations."
+                     ),
+                     p("g. ", tags$b("Save Plot."), " You can adjust each parameter repeatedly and draw different heatmaps. When you get a satisfactory heatmap, click the \"",
+                       tags$span(style = "color:#84A4CA; font-weight:bold", "Save Plot"),
+                       "\" button. The image will be saved to the Result folder at visualization_YYYYmmddHHMM/HEATMAP, including two pdf files with and without gene names. The naming convention is whether it `includes gene names`_`Clustering Method`.`Number of Clusters`_`Scale By`.`Cluster By`."
+                     ),
+                     hr(),
+                     h4("3. Download heatmap data"),
+                     p("a. ", tags$b("Number of Pseudotime samples."), " Set the number of sampling points. The maximum value is 1000 and the minimum value is 3. Heatmap data will be generated based on the selected number of points."),
+                     p("b. ", tags$b("Save Data."), "Click the \"",
+                       tags$span(style = "color:#95D3E6; font-weight:bold", "Save Data"),
+                       "\" button to save the final data. This includes gene names, their assigned clusters, scaled data, and raw data. The file will be saved to the Result folder at visualization_YYYYmmddHHMM/HEATMAP folder, named as Data_`Clustering Method`.`Number of Clusters`_`Scale By`.`Cluster by`.xlsx")
+                   ),
+                   uiOutput("heatmap_ui")
+          ),
+          
+          # SINGLE GENE ANALYSIS Tab
+          tabPanel("SINGLE GENE ANALYSIS", 
+                   tags$div(
+                     id = "single_gene_analysis_desc", class = "description-panel",
+                     style = "display: none;",
+                       h3("Single Gene Analysis Description"),
+                       h4("Analyze specific genes.", style = "color: grey;"),
+                       hr(),
+                       h4("1. Select appropriate dimensions"),
+                       p("Since harmony and PCA may have mixing of different biological categories under specific dimensions during visualization, before selecting genes for analysis, you can use \"X Axis\" and \"Y Axis\" to select dimensions where the biological categories in the Cell Cluster plot are separated and pseudotime is continuous."),
+                     hr(),  
+                     h4("2. Select genes"),
+                       p("a. Click ",
+                         tags$span(style = "color:#5CB85C; font-weight:bold", "\"Select Gene\""),
+                         " to enter the gene selection page."
+                       ),
+                       p("b. In the selection page, you can sort ascending or descending and use the search function. Scroll horizontally to view all column names."),
+                       p("c. Click the row of the gene you want to analyze, then click ",
+                         tags$span(style = "color:#337AB7; font-weight:bold", "\"Confirm\""),
+                         " to confirm the gene."
+                       ),
+                       h4("View cell cluster and pseudotime distributions"),
+                       p("Besides the Cell Cluster plot and Pseudotime plot shown automatically at the start, you can also click ",
+                         tags$span(style = "color:#929292; font-weight:bold", "\"Reset\""),
+                         " after selecting genes to re-display these two plots."
+                       ),
+                     hr(),
+                       h4("3. Different plots"),
+                       p("When no gene is selected, two plots are displayed: the Cell Cluster plot and the Pseudotime plot, which are used to observe classifications of different biological cell types and pseudotime distributions."),
+                       br(),
+                       p("After gene selection, three plots are shown: Population plot, pseudotime variation of different Samples, and distribution of different Samples in the dimensionality reduction space."),
+                       p("Click \"Show individual data points\" to display cell points in the pseudotime variation plot of different Samples."),
+                       p("Click \"Include zero-expression cells\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
+                       p("Uncheck \"Sample included\" to remove the corresponding sample from the pseudotime variation plot, facilitating observation of relationships among other samples."),
+                     hr(),  
+                     h4("4. Save images"),
+                       p("At any time (whether genes are selected or not), you can click ",
+                         tags$span(style = "color:#337AB7; font-weight:bold", "\"Save Plot to result folder\""),
+                         " to save displayed plots to the Result folder at visualization_YYYYmmddHHMM/HEATMAP. If no gene is selected, the two plots will be saved in the reduction folder; otherwise, they will be saved in the folder corresponding to the gene name. Meanwhile, a COMBINED folder will be generated including gene information and all three plots."
+                       )
+                     ),
+                   uiOutput("gene_ui")
+          ),
+          
+          # MULTI GENE ANALYSIS Tab
+          tabPanel("MULTI GENE ANALYSIS", 
+                   tags$div(
+                     id = "multi_gene_analysis_desc", class = "description-panel",
+                     style = "display: none;",
+                     h3("Multi Gene Analysis Description"),
+                     h4("Directly save the visualization analysis results of specified genes.", style = "color: grey;"),
+                     hr(),
+                     h4("1. Enter the genes list"),
+                     p("The default gene list is for genes with an fdr.overall < 0.05. You can also enter your own gene list, separated by line breaks (you can directly copy and paste multiple rows of gene names from the Excel file downloaded using \"Download statistical results\")."),
+                     p("a. Click \"",
+                       tags$span(style = "color:#4678B2; font-weight:bold", "fdr.overall < 0.05"),
+                       "\" to use the default list of genes with an fdr.overall value < 0.05."),
+                     p("b. Click \"",
+                       tags$span(style = "color:#C95C54; font-weight:bold", "Clear All"),
+                       "\" to clear all genes."),
+                    hr(),
+                    h4("2. Option for visualization"),
+                    p("Click \"Show individual data points\" to display cell points in the pseudotime variation plot of different Samples."),
+                    p("Click \"Include zero-expression cells\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
+                   hr(),
+                   h4("3. Start Analysis"),
+                   p("Click \"",
+                     tags$span(style = "color:#4678B2; font-weight:bold", "Start Analysis"),
+                     "\" to start analysis. All the gene file will be save to the Result folder at visualization_YYYYmmddHHMM/HEATMAP/COMBINED, included gene name, information, Population plot, pseudotime variation of different Samples, and distribution of different Samples in the dimensionality reduction space.")
+                    ),
+                   uiOutput("multi_gene_ui")
+          ),
+          
+          # DOWNLOAD VISUALIZATION Tab
+          tabPanel("DOWNLOAD VISUALIZATION", 
+                   tags$div(
+                     id = "download_visualization_desc", class = "description-panel",
+                     style = "display: none;",
+                     h3("Download Visualization Description"),
+                     h4("Download all visualization results", style = "color: grey;"),
+                     hr(),
+                     p("Download the results of visualization_YYYYmmddHHMM in the result folder to the computer's default download folder.")
+                   ),
+                   uiOutput("download_tab_content")
+          )
         )
       )
     }
   })
+  
+  observeEvent(input$navlist, {
+  shinyjs::hide(".description-panel")
+  
+  desc_id <- switch(input$navlist,
+    "HEATMAP" = "heatmap_desc",
+    "SINGLE GENE ANALYSIS" = "single_gene_analysis_desc",
+    "MULTI GENE ANALYSIS" = "multi_gene_analysis_desc",
+    "DOWNLOAD VISUALIZATION" = "download_visualization_desc"
+  )
+  shinyjs::show(desc_id)
+}, ignoreInit = FALSE)
   
   output$download_stat <- downloadHandler(
     filename = function() {"Lamian_statistical_result.xlsx"},
@@ -181,12 +332,10 @@ dataVisualization_server <- function(input, output, session) {
             rows = 10,
             placeholder = "Paste genes here:\nGene_A\nGene_B\nGene_C"
           ),
-          fluidRow(
-            column(6, actionButton("load_default", "fdr.overall < 0.05", 
-                                   class = "btn-primary", width = "100%")),
-            column(6, actionButton("clear_genes", "Clear All", 
-                                   class = "btn-danger", width = "100%"))
-          ),
+          actionButton("load_default", "fdr.overall < 0.05", 
+                                   class = "btn-primary", width = "100%"),
+          actionButton("clear_genes", "Clear All", 
+                                   class = "btn-danger", width = "100%"),
           
           hr(),
           h4("Heatmap Parameters", class = "text-info"),
@@ -368,9 +517,14 @@ dataVisualization_server <- function(input, output, session) {
   
   observeEvent(input$save_heatmap_plot, {
     req(heatmap_plot(), heatmap_data(), input$result_folder)
-    
-    vis_dir <- file.path(input$result_folder, "visualization", "HEATMAP")
-    if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+    if (is.null(result_visulization_folder())) {
+      time_str <- format(Sys.time(), "%Y%m%d%H%M")
+      vis_dir <- file.path(input$result_folder, paste0("visualization_", time_str))
+      if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+      result_visulization_folder(vis_dir)
+    }
+    heatmap_folder <- file.path(result_visulization_folder(),"HEATMAP")
+    if (!dir.exists(heatmap_folder)) dir.create(heatmap_folder, recursive = TRUE)
     
     col_fun <- circlize::colorRamp2(
       c(-2, 0, 2), 
@@ -387,7 +541,7 @@ dataVisualization_server <- function(input, output, session) {
       n_rows <- nrow(heatmap_data())
       plot_height <- max(8, n_rows * 0.03 + 6)  
       
-      pdf(file.path(vis_dir, paste0("WithoutGeneName_", input$cluster_method, ".", input$cluster_number, "_", input$scale_by,".", input$cluster_by, ".pdf")), 
+      pdf(file.path(heatmap_folder, paste0("WithoutGeneName_", input$cluster_method, ".", input$cluster_number, "_", input$scale_by,".", input$cluster_by, ".pdf")), 
           width = 10, height = plot_height) 
       grid.text(params_title, 
                 x = 0.5, y = 0.98, 
@@ -457,7 +611,7 @@ dataVisualization_server <- function(input, output, session) {
         heatmap_legend_param = list(title = NULL)
       )
       
-      pdf(file.path(vis_dir, paste0("WithGeneName_", input$cluster_method,".",input$cluster_number, "_", input$scale_by, ".", input$cluster_by, ".pdf")), 
+      pdf(file.path(heatmap_folder, paste0("WithGeneName_", input$cluster_method,".",input$cluster_number, "_", input$scale_by, ".", input$cluster_by, ".pdf")), 
           width = plot_width, height = plot_height)
       grid.text(params_title, 
                 x = 0.5, y = 0.98, 
@@ -516,12 +670,19 @@ dataVisualization_server <- function(input, output, session) {
 
       )
       
-      vis_dir <- file.path(input$result_folder, "visualization", "HEATMAP")
-      if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+      if (is.null(result_visulization_folder())) {
+        time_str <- format(Sys.time(), "%Y%m%d%H%M")
+        vis_dir <- file.path(input$result_folder, paste0("visualization_", time_str))
+        if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+        result_visulization_folder(vis_dir)
+      }
+      heatmap_folder <- file.path(result_visulization_folder(),"HEATMAP")
+      if (!dir.exists(heatmap_folder)) dir.create(heatmap_folder, recursive = TRUE)
+      
       
       writexl::write_xlsx(
         list(HeatmapData = sampled_data),
-        path = file.path(vis_dir, paste0("Data_", input$cluster_method,".",input$cluster_number, "_", input$scale_by, ".", input$cluster_by, ".xlsx"))
+        path = file.path(heatmap_folder, paste0("Data_", input$cluster_method,".",input$cluster_number, "_", input$scale_by, ".", input$cluster_by, ".xlsx"))
       )
       
       showNotification(
@@ -539,6 +700,7 @@ dataVisualization_server <- function(input, output, session) {
   })
   
   output$gene_ui <- renderUI({
+    
     fluidRow(
       column(
         width = 3,
@@ -666,6 +828,9 @@ dataVisualization_server <- function(input, output, session) {
                  checkboxInput("included_zero", "Include zero-expression cells", 
                                value = FALSE, width = "100%"))
         ),
+        hr(),
+        h4("Sample included"),
+        uiOutput("sample_selector_ui"),
         fluidRow(
           column(6, plotOutput("gene_plot1", height = "400px")),
           column(6, plotOutput("gene_plot2", height = "400px"))
@@ -691,10 +856,46 @@ dataVisualization_server <- function(input, output, session) {
     included_zero(input$included_zero)
   })
   
+  output$sample_selector_ui <- renderUI({
+    req(xde_result())
+    samples <- unique(xde_result()$cellanno$Sample)
+    
+    half_len <- ceiling(length(samples) / 2)
+    samples_left <- samples[1:half_len]
+    samples_right <- samples[(half_len + 1):length(samples)]
+    
+    fluidRow(
+      column(6,
+             checkboxGroupInput(
+               inputId = "selected_samples_left",
+               label = NULL,
+               choices = samples_left,
+               selected = samples_left,
+               inline = FALSE
+             )
+      ),
+      column(6,
+             checkboxGroupInput(
+               inputId = "selected_samples_right",
+               label = NULL,
+               choices = samples_right,
+               selected = samples_right,
+               inline = FALSE
+             )
+      )
+    )
+  })
+  
+  
   observeEvent(input$save_plot, {
     req(input$result_folder)  
-    vis_dir <- file.path(input$result_folder, "visualization")
-    if (!dir.exists(vis_dir)) dir.create(vis_dir)
+    if (is.null(result_visulization_folder())) {
+      time_str <- format(Sys.time(), "%Y%m%d%H%M")
+      vis_dir <- file.path(input$result_folder, paste0("visualization_", time_str))
+      if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+      result_visulization_folder(vis_dir)
+    }
+    vis_dir <- result_visulization_folder()
     
     tryCatch({
       if (is.na(gene_analysis_selected())) {
@@ -850,7 +1051,7 @@ dataVisualization_server <- function(input, output, session) {
   })
   
   output$gene_plot2 <- renderPlot({
-    req(gene_analysis_selected(), xde_result())
+    req(gene_analysis_selected(), xde_result(), input$selected_samples_left, input$selected_samples_right)
     
     gene_name <- gene_analysis_selected()
     long_expr <- data.frame(
@@ -859,14 +1060,25 @@ dataVisualization_server <- function(input, output, session) {
       pseudotime = xde_result()$pseudotime[colnames(xde_result()$expr)]
     )
     
-    cellanno_sub <- xde_result()$cellanno[xde_result()$cellanno$Cell %in% colnames(xde_result()$expr), ]
+    cellanno_sub <- xde_result()$cellanno[
+      xde_result()$cellanno$Cell %in% colnames(xde_result()$expr), ]
+    
     plot_df <- merge(cellanno_sub, long_expr, by = "Cell")
+    
+    selected_samples <- unique(c(input$selected_samples_left, input$selected_samples_right))
+    
+    plot_df <- plot_df[plot_df$Sample %in% selected_samples, ]
+    
+    samples_all <- unique(xde_result()$cellanno$Sample)
+    colors_all <- color_selected(length(samples_all))
+    names(colors_all) <- samples_all
     
     p <- ggplot(plot_df, aes(x = pseudotime, y = expr, color = Sample)) +
       geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
-      scale_color_brewer(palette = "Set2") + 
+      scale_color_manual(values = colors_all) +
       theme_classic() +
-      labs(x = "Pseudotime", y = "Expression Level") + theme(
+      labs(x = "Pseudotime", y = "Expression Level") + 
+      theme(
         legend.title = element_text(size = 14),     
         legend.text = element_text(size = 12),      
         axis.title.x = element_text(size = 14),      
@@ -878,6 +1090,7 @@ dataVisualization_server <- function(input, output, session) {
     if (show_points()) {
       p <- p + geom_point(alpha = 0.3, size = 1)
     }
+    
     gene_plot2(p)
     return(p)
   })
@@ -955,12 +1168,10 @@ dataVisualization_server <- function(input, output, session) {
             rows = 10,
             placeholder = "Paste genes here:\nGene_A\nGene_B\nGene_C"
           ),
-          fluidRow(
-            column(6, actionButton("load_default_multi", "fdr.overall < 0.05", 
-                                   class = "btn-primary", width = "100%")),
-            column(6, actionButton("clear_genes_multi", "Clear All", 
-                                   class = "btn-danger", width = "100%"))
-          ),
+          actionButton("load_default_multi", "fdr.overall < 0.05", 
+                                   class = "btn-primary", width = "100%"),
+          actionButton("clear_genes_multi", "Clear All", 
+                                   class = "btn-danger", width = "100%"),
           hr(),
           fluidRow(
             column(6, 
@@ -1002,7 +1213,14 @@ dataVisualization_server <- function(input, output, session) {
   
   observeEvent(input$save_multi_gene, {
     req(input$multi_gene_list)
-    combined_dir <- file.path(input$result_folder, "visualization", "COMBINED")
+    if (is.null(result_visulization_folder())) {
+      time_str <- format(Sys.time(), "%Y%m%d%H%M")
+      vis_dir <- file.path(input$result_folder, paste0("visualization_", time_str))
+      if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+      result_visulization_folder(vis_dir)
+    }
+    
+    combined_dir <- file.path(result_visulization_folder(), "COMBINED")
     if (!dir.exists(combined_dir)) dir.create(combined_dir, recursive = TRUE)
     
     gene_list <- unlist(strsplit(input$multi_gene_list, "\n"))
@@ -1035,7 +1253,6 @@ dataVisualization_server <- function(input, output, session) {
     
     tryCatch({
       for (i in seq_along(gene_list)) {
-        if (cancel_processing) break
         
         gene <- gene_list[i]
         
@@ -1112,9 +1329,13 @@ dataVisualization_server <- function(input, output, session) {
           cellanno_sub <- xde_result()$cellanno[xde_result()$cellanno$Cell %in% colnames(xde_result()$expr), ]
           plot_df <- merge(cellanno_sub, long_expr, by = "Cell")
           
+          samples_all <- unique(xde_result()$cellanno$Sample)
+          colors_all <- color_selected(length(samples_all))
+          names(colors_all) <- samples_all
+          
           p2 <- ggplot(plot_df, aes(x = pseudotime, y = expr, color = Sample)) +
             geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
-            scale_color_brewer(palette = "Set2") + 
+            scale_color_manual(values = colors_all) + 
             theme_classic() +
             labs(x = "Pseudotime", y = "Expression Level") + 
             theme(
@@ -1199,20 +1420,16 @@ dataVisualization_server <- function(input, output, session) {
         Sys.sleep(0.05)
       }
       
-      if (cancel_processing) {
-        progress_log <- paste0(progress_log, Sys.time(), ": Processing cancelled!\n")
-      } else {
+      
         progress_log <- paste0(progress_log, Sys.time(), ": DONE! Processed ", length(gene_list), " genes.\n The window will automatically close after 3 seconds.")
-      }
+      
       
       shinyjs::html(id = "progress-log", html = progress_log, add = FALSE)
       shinyjs::runjs("var elem = document.getElementById('progress-log'); elem.scrollTop = elem.scrollHeight;")
       
       delay(3000, {
         removeModal()
-        if (!cancel_processing) {
-          showNotification("Multi-gene analysis completed!", type = "message")
-        }
+        
       })
       
     }, error = function(e) {
@@ -1223,22 +1440,20 @@ dataVisualization_server <- function(input, output, session) {
   
   
   output$download_tab_content <- renderUI({
-
-      div(
-        style = "padding: 15px;",
+    fluidRow(
+      column(12,
         div(
           style = "color: red; font-weight: bold; margin-bottom: 15px;",
           icon("exclamation-triangle"), 
-          "If you have not generated any visualization files yet. Please use \"HEATMAP\" or \"GENE ANALYSIS\" to generate them first."
+          "If you have not generated any visualization files yet. Please use \"HEATMAP\", \"SINGLE GENE ANALYSIS\" or \"MULTI GENE ANALYSIS\" to generate them first."
         ),
-          downloadButton(
-            "download_visualization", 
-            label = "Download All Visualization Files",
-            style = "width: 100%;"
-          
+        downloadButton(
+          "download_visualization", 
+          label = "Download All Visualization Files",
+          style = "width: 100%;"
         )
-      )
-    
+    )
+    )
   })
   
   output$download_visualization <- downloadHandler(
@@ -1246,7 +1461,14 @@ dataVisualization_server <- function(input, output, session) {
       paste0("visualization_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".zip")
     },
     content = function(file) {
-      vis_dir <- file.path(input$result_folder, "visualization")
+      if (is.null(result_visulization_folder())) {
+        time_str <- format(Sys.time(), "%Y%m%d%H%M")
+        vis_dir <- file.path(input$result_folder, paste0("visualization_", time_str))
+        if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+        result_visulization_folder(vis_dir)
+      }
+      
+      vis_dir <- result_visulization_folder()
       req(dir.exists(vis_dir))
       showModal(modalDialog(
         title = "Processing",
