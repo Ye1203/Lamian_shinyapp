@@ -4,7 +4,7 @@ step1 <- function(data,
                   group_by_vars,
                   dims_use){
   DefaultAssay(data) <- "RNA"
-  data <- NormalizeData(data, normalization.method = "LogNormalize")
+  data <- NormalizeData(data, normalization.method = "LogNormalize", verbose = FALSE)
   if(is_harmony){
     data <- RunHarmony(
       object = data,
@@ -13,7 +13,8 @@ step1 <- function(data,
       dims.use = 1:dims_use,
       assay.use = "RNA",
       reduction.save = "harmony",
-      project.dim = TRUE
+      project.dim = TRUE,
+      verbose = FALSE
     )
   }
   return(data)

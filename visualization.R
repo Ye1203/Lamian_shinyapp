@@ -1050,9 +1050,33 @@ dataVisualization_server <- function(input, output, session) {
     return(p)
   })
   
+  raw_combined_samples <- reactive({
+    unique(c(
+      if(is.null(input$selected_samples_left)) character(0) else input$selected_samples_left,
+      if(is.null(input$selected_samples_right)) character(0) else input$selected_samples_right
+    ))
+  })
+  
+  combined_samples <- debounce(raw_combined_samples, 500)
+  
+  
   output$gene_plot2 <- renderPlot({
-    req(gene_analysis_selected(), xde_result(), input$selected_samples_left, input$selected_samples_right)
+    # Require essential inputs
+    req(gene_analysis_selected(), xde_result())
     
+    # Get the debounced combined samples
+    selected_samples <- combined_samples()
+    
+    # Handle empty selection case
+    if (length(selected_samples) == 0) {
+      return(ggplot() + 
+               annotate("text", x = 0.5, y = 0.5, 
+                        label = "Please select at least one sample", 
+                        size = 6) + 
+               theme_void())
+    }
+    
+    # Prepare expression data
     gene_name <- gene_analysis_selected()
     long_expr <- data.frame(
       Cell = colnames(xde_result()$expr),
@@ -1060,37 +1084,78 @@ dataVisualization_server <- function(input, output, session) {
       pseudotime = xde_result()$pseudotime[colnames(xde_result()$expr)]
     )
     
+    # Merge with cell annotations
     cellanno_sub <- xde_result()$cellanno[
       xde_result()$cellanno$Cell %in% colnames(xde_result()$expr), ]
-    
     plot_df <- merge(cellanno_sub, long_expr, by = "Cell")
     
-    selected_samples <- unique(c(input$selected_samples_left, input$selected_samples_right))
-    
+    # Filter for selected samples
     plot_df <- plot_df[plot_df$Sample %in% selected_samples, ]
     
+    # Prepare color scheme
     samples_all <- unique(xde_result()$cellanno$Sample)
     colors_all <- color_selected(length(samples_all))
     names(colors_all) <- samples_all
     
-    p <- ggplot(plot_df, aes(x = pseudotime, y = expr, color = Sample)) +
-      geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
-      scale_color_manual(values = colors_all) +
+    # Create base plot
+    p <- ggplot(plot_df, aes(x = pseudotime, y = expr)) +
       theme_classic() +
       labs(x = "Pseudotime", y = "Expression Level") + 
       theme(
-        legend.title = element_text(size = 14),     
-        legend.text = element_text(size = 12),      
-        axis.title.x = element_text(size = 14),      
-        axis.title.y = element_text(size = 14),     
-        axis.text.x = element_text(size = 12),       
-        axis.text.y = element_text(size = 12)        
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        plot.title = element_text(size = 16, hjust = 0.5)
       )
     
-    if (show_points()) {
-      p <- p + geom_point(alpha = 0.3, size = 1)
+    # Add smoothed lines with consistent legend
+    if (length(selected_samples) == 1) {
+      p <- p + 
+        geom_smooth(
+          aes(color = "Selected Sample"),
+          se = FALSE, 
+          method = "loess", 
+          formula = y ~ x,
+          show.legend = TRUE
+        ) +
+        scale_color_manual(
+          name = "Samples",
+          values = setNames(colors_all[selected_samples], "Selected Sample"),
+          labels = setNames(selected_samples, "Selected Sample")
+        )
+    } else {
+      p <- p + 
+        geom_smooth(
+          aes(color = Sample),
+          se = FALSE,
+          method = "loess",
+          formula = y ~ x,
+          show.legend = TRUE
+        ) +
+        scale_color_manual(values = colors_all)
     }
     
+    # Conditionally add points
+    if (show_points()) {
+      if (length(selected_samples) == 1) {
+        p <- p + geom_point(
+          aes(color = "Selected Sample"),
+          alpha = 0.3, 
+          size = 1,
+          show.legend = FALSE
+        )
+      } else {
+        p <- p + geom_point(
+          aes(color = Sample),
+          alpha = 0.3, 
+          size = 1,
+          show.legend = FALSE
+        )
+      }
+    }
     gene_plot2(p)
     return(p)
   })

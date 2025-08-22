@@ -187,7 +187,9 @@ server <- function(input, output, session) {
                actionButton("next_btn", "NEXT STEP", class = "btn btn-primary", disabled = !filter_run_done())
         ),
         column(4,
-               plotOutput("pseudotime_boxplot")
+               plotOutput("pseudotime_boxplot"),
+               hr(),
+               tableOutput("sample_filter_stats")
         ),
         column(4,
                uiOutput("step4_description")
@@ -207,6 +209,7 @@ server <- function(input, output, session) {
                hr(),
                numericInput("max_knot", "Maximum knot for spline:", min = 4, value = 10),
                numericInput("perm_iter", "Permutation iterations:", min = 11, value = 110),
+               numericInput("task_duration", "Task duration", min = 1, value = 24),
                hr(),
                textInput("project_name", "Project name:", value = ""),
                textInput("email", "Email address:", value = ""),
@@ -320,9 +323,10 @@ server <- function(input, output, session) {
       tags$hr(),
       h4("3. Other value setting"),
       p("a. \"Maximum knot of spline\" controls spline flexibility; default is recommended."),
-      p("b. \"Permutation iterations\" set simulation runs; higher gives more accuracy but takes longer. Default is recommended. Since qsub limits to 24 hours, too large values may cause timeout. If so, contact Bingtian."),
-      p("c. \"Project name\" is the project name you can use on scc, such as wax-es, wax-dk, etc."),
-      p("d. \"Email address\" is empty by default. Since Lamian runs for hours, provide your email to get results. If no email after 48 hours, it may have timed out. Try reducing cells, genes, or permutation times."),
+      p("b. \"Permutation iterations\" set simulation runs; higher gives more accuracy but takes longer. Default is recommended."),
+      p("c. \"Task duration\" set the task running time. If the time is too short, the task will be aborted midway."),
+      p("d. \"Project name\" is the project name you can use on scc, such as wax-es, wax-dk, etc."),
+      p("e. \"Email address\" is empty by default. Since Lamian runs for hours, provide your email to get results. If no email after the \"Task duration\" + 24 hours, please check whether the task is still running. If the task is not running, it may have timed out. Please try reducing the number of cells, genes, or permutations, or increasing the \"Task duration\"."),
       tags$hr(),
       h4("4. Start lamian analysis"),
       p("click \"Run Lamian Analysis\" to start lamian data preparing. Please close Shinyapp after the Lamian Job Submitted pop-up window appears."),
@@ -393,7 +397,7 @@ server <- function(input, output, session) {
   })
   
   output$step1_plot <- renderPlot({
-    req(dataLoaded())
+    req(dataLoaded(), input$group_by_vars)
     req(input$do_harmony == TRUE)
     data <- seuratObj()
     DimPlot(data, group.by = input$group_by_vars) + ggtitle(paste("UMAP Plot by", input$group_by_vars))
@@ -783,7 +787,7 @@ server <- function(input, output, session) {
     }
     
     # Get sample names from the processed data
-    sample_names <- unique(processedObj()@meta.data[[input$sample_select]])
+    sample_names <- sort(unique(processedObj()@meta.data[[input$sample_select]]))
     
     nr <- length(sample_names)
     # Create data frame with Sample column
@@ -841,6 +845,44 @@ server <- function(input, output, session) {
     ncol(expr)
   })
   
+  output$sample_filter_stats <- renderTable({
+    req(step3_result(), input$lower_quantile, input$upper_quantile)
+    sce <- step3_result()
+    pseudotime_matrix <- assay(sce@colData$slingshot, "pseudotime")
+    pseudotime_vec <- pseudotime_matrix[,1]
+    
+    sample_id_vec <- sce@colData$sample
+    
+    Q1_all <- quantile(pseudotime_vec, probs = input$lower_quantile/100, na.rm = TRUE)
+    Q3_all <- quantile(pseudotime_vec, probs = input$upper_quantile/100, na.rm = TRUE)
+    
+    filtered_out <- pseudotime_vec < Q1_all | pseudotime_vec > Q3_all
+    remaining <- !filtered_out
+    
+    sample_names <- sort(unique(sample_id_vec))
+    
+    stats_df <- data.frame(
+      Sample = sample_names,
+      Original = sapply(sample_names, function(s) sum(sample_id_vec == s)),
+      Filtering_Out = sapply(sample_names, function(s) {
+        sum(sample_id_vec == s & filtered_out)
+      }),
+      Remaining = sapply(sample_names, function(s) {
+        sum(sample_id_vec == s & remaining)
+      })
+    )
+    
+    total_row <- data.frame(
+      Sample = "Total",
+      Original = sum(stats_df$Original),
+      Filtering_Out = sum(stats_df$Filtering_Out),
+      Remaining = sum(stats_df$Remaining)
+    )
+    
+    stats_df <- rbind(stats_df, total_row)
+    
+    stats_df
+  }, bordered = TRUE, striped = TRUE, align = 'c', width = "100%")
   
   output$pseudotime_boxplot <- renderPlot({
     sce <- step3_result()
@@ -858,6 +900,10 @@ server <- function(input, output, session) {
     df_all <- df %>%
       mutate(sample_id = "All_samples")
     df_plot <- bind_rows(df, df_all)
+    
+    levels_order <- c(sort(unique(df$sample_id), decreasing = TRUE), "All_samples")
+    df_plot$sample_id <- factor(df_plot$sample_id, levels = levels_order)
+    
     Q1_all <- quantile(df$pseudotime, probs = input$lower_quantile/100, na.rm = TRUE)
     Q3_all <- quantile(df$pseudotime, probs = input$upper_quantile/100, na.rm = TRUE)
     
@@ -907,8 +953,10 @@ server <- function(input, output, session) {
     design <- hot_to_r(input$design_matrix)
     maximumknotallowed <- input$max_knot
     permuiter <- input$perm_iter
+    task_duration <- input$task_duration
     project_name <- input$project_name
     email_address <- input$email
+    
     
     # Validate inputs
     if (nchar(project_name) == 0) {
@@ -949,6 +997,7 @@ server <- function(input, output, session) {
         design = design_conv,
         maximumknotallowed = maximumknotallowed,
         permuiter = permuiter,
+        task_duration = task_duration,
         project_name = project_name,
         email_address = email_address
       )

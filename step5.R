@@ -1,4 +1,4 @@
-step5 <- function(data, sce, selected_lineage, output_file_path, design, maximumknotallowed, permuiter, project_name, email_address = NA){
+step5 <- function(data, sce, selected_lineage, output_file_path, design, maximumknotallowed, permuiter, task_duration, project_name, email_address = NA){
   if (!startsWith(output_file_path, "/")) {
     output_file_path <- paste0("/", output_file_path)
   }
@@ -152,7 +152,7 @@ permuiter
     "#$ -j y\n",
     "#$ -o ", log_path, "\n",
     "#$ -pe omp 28\n",
-    "#$ -l h_rt=24:00:00\n",
+    "#$ -l h_rt=",task_duration,":00:00\n",
     "#$ -l mem_per_core=18G\n",
     "#$ -V\n",
     "#$ -P ", project_name, "\n",
