@@ -15,6 +15,10 @@ library(tidyr)
 library(rhandsontable)
 library(plotly)
 library(grid)
+library(lme4)
+library(lmerTest)
+library(cowplot)
+library(openxlsx)
 library(gridExtra)
 library(shinyWidgets)
 
@@ -53,6 +57,8 @@ server <- function(input, output, session) {
   processedObj <- reactiveVal(NULL)
   dataLoaded <- reactiveVal(FALSE)
   runDoneStep1 <- reactiveVal(FALSE)
+  sample_rename_info <- reactiveVal(NULL)
+  cluster_rename_info <- reactiveVal(NULL)
   
   data_temp <- reactiveVal(NULL)
   subsetDone <- reactiveVal(FALSE)
@@ -62,7 +68,7 @@ server <- function(input, output, session) {
   
   step4_result <- reactiveVal(NULL)
   filter_run_done <- reactiveVal(FALSE)
-  
+  stats_df <- reactiveVal(NULL)
   obj_filtered_temp <- reactiveVal(NULL) # Temporary filtered object for Step4
   
   output$step_ui <- renderUI({
@@ -154,6 +160,7 @@ server <- function(input, output, session) {
                            selected = default_reduction),
                uiOutput("start_cluster_ui"),
                actionButton("run_sling_btn", "INITIATE SLINGSHOT"),
+               br(),
                br(),
                uiOutput("lineage_select_ui"),
                br(),
@@ -373,15 +380,15 @@ server <- function(input, output, session) {
     group_by_vars <- if (is_harmony) input$group_by_vars else NULL
     dims_use <- if (is_harmony) input$dims_use else NULL
     if (is_harmony) {showModal(modalDialog(title = "Please wait",
-                                           tagList(
-                                             p("Running Normalization and Harmonization..."),
-                                             p("The waiting time is related to the size of data and the number of dimention. Usually takes several minutes.")
-                                           ), footer = NULL, easyClose = FALSE))
-    }else if(!is_harmony){showModal(modalDialog(title = "Please wait",
-                                                tagList(
-                                                  p("Running Normalization..."),
-                                                  p("Usually takes less than 1 minute.")
-                                                ), footer = NULL, easyClose = FALSE))}
+                                          tagList(
+                                            p("Running Normalization and Harmonization..."),
+                                            p("The waiting time is related to the size of data and the number of dimention. Usually takes several minutes.")
+                                          ), footer = NULL, easyClose = FALSE))
+      }else if(!is_harmony){showModal(modalDialog(title = "Please wait",
+                                                  tagList(
+                                                    p("Running Normalization..."),
+                                                    p("Usually takes less than 1 minute.")
+                                                  ), footer = NULL, easyClose = FALSE))}
     tryCatch({
       obj_processed <- step1(data = obj, is_harmony, group_by_vars, dims_use)
       processedObj(obj_processed)
@@ -410,187 +417,208 @@ server <- function(input, output, session) {
     
     # Get non-numeric meta.data columns
     mdcols <- names(which(sapply(obj@meta.data, function(x) !is.numeric(x))))
-    if (!is.null(mdcols) && "CB" %in% mdcols) {
-      mdcols <- setdiff(mdcols, "CB")
-    }
+                    if (!is.null(mdcols) && "CB" %in% mdcols) {
+                      mdcols <- setdiff(mdcols, "CB")
+                    }
+                    
+                    # Update selectInput choices
+                    updateSelectInput(session, "sample_select", choices = mdcols, selected = mdcols[1])
+                    updateSelectInput(session, "cluster_select", choices = mdcols, selected = mdcols[1])
+  })
     
-    # Update selectInput choices
-    updateSelectInput(session, "sample_select", choices = mdcols, selected = mdcols[1])
-    updateSelectInput(session, "cluster_select", choices = mdcols, selected = mdcols[1])
-  })
-  
-  # Render initial plots (using processedObj)
-  output$sample_dimplot <- renderPlot({
-    req(processedObj(), input$sample_select)
-    DimPlot(processedObj(), group.by = input$sample_select) + 
-      ggtitle(paste("Original UMAP by", input$sample_select))
-  })
-  
-  output$cluster_dimplot <- renderPlot({
-    req(processedObj(), input$cluster_select)
-    DimPlot(processedObj(), group.by = input$cluster_select) + 
-      ggtitle(paste("Original UMAP by", input$cluster_select))
-  })
-  
-  # Dynamic UI for sample subset and rename
-  output$sample_subset_rename_ui <- renderUI({
-    req(processedObj(), input$sample_select)
-    vals <- sort(unique(processedObj()@meta.data[[input$sample_select]]))
-    
-    tagList(
-      h5("Subset Samples"),
-      lapply(vals, function(val) {
-        fluidRow(
-          column(4,
-                 checkboxInput(paste0("sample_cb_", val), label = val, value = TRUE)
-          ),
-          column(8,
-                 textInput(paste0("sample_rename_", val), label = NULL, value = val,
-                           placeholder = "New name")
-          )
-        )
-      }))
-  })
-  
-  # Dynamic UI for cluster subset and rename
-  output$cluster_subset_rename_ui <- renderUI({
-    req(processedObj(), input$cluster_select)
-    vals <- sort(unique(processedObj()@meta.data[[input$cluster_select]]))
-    
-    
-    tagList(
-      h5("Subset Cell Clusters"),
-      lapply(vals, function(val) {
-        fluidRow(
-          column(4,
-                 checkboxInput(paste0("cluster_cb_", val), label = val, value = TRUE)
-          ),
-          column(8,
-                 textInput(paste0("cluster_rename_", val), label = NULL, value = val,
-                           placeholder = "New name")
-          )
-        )
-      }))
-  })
-  
-  # Enable/disable rename inputs based on checkbox state
-  observe({
-    req(processedObj(), input$sample_select)
-    vals <- sort(unique(processedObj()@meta.data[[input$sample_select]]))
-    lapply(vals, function(val) {
-      cb_id <- paste0("sample_cb_", val)
-      rename_id <- paste0("sample_rename_", val)
-      shinyjs::toggleState(id = rename_id, condition = isTRUE(input[[cb_id]]))
-    })
-  })
-  
-  observe({
-    req(processedObj(), input$cluster_select)
-    vals <- sort(unique(processedObj()@meta.data[[input$cluster_select]]))
-    lapply(vals, function(val) {
-      cb_id <- paste0("cluster_cb_", val)
-      rename_id <- paste0("cluster_rename_", val)
-      shinyjs::toggleState(id = rename_id, condition = isTRUE(input[[cb_id]]))
-    })
-  })
-  
-  observeEvent(input$run_subset_btn, {
-    req(processedObj(), input$sample_select, input$cluster_select)
-    obj <- processedObj()
-    
-    showModal(modalDialog(
-      title = "Processing Subset",
-      "Applying subset and rename operations...",
-      footer = NULL,
-      easyClose = FALSE
-    ))
-    
-    tryCatch({
-      # Get selected values with validation
-      sample_vals <- get_selected_values(obj, input$sample_select, "sample_cb")
-      cluster_vals <- get_selected_values(obj, input$cluster_select, "cluster_cb")
-      
-      # Validate at least one sample and cluster is selected
-      validate(
-        need(length(sample_vals) > 0, "Please select at least one sample"),
-        need(length(cluster_vals) > 0, "Please select at least one cluster")
-      )
-      
-      # Get intersecting cells with validation
-      keep_cells <- get_intersecting_cells(obj, input$sample_select, sample_vals, 
-                                           input$cluster_select, cluster_vals)
-      
-      validate(
-        need(length(keep_cells) > 0, 
-             "No cells match the selected criteria. Please adjust your subsetting options.")
-      )
-      # Create subset
-      obj_sub <- subset(obj, cells = keep_cells)
-      
-      # Apply renaming
-      obj_sub <- apply_renaming(obj_sub, input$sample_select, sample_vals, "sample_rename")
-      obj_sub <- apply_renaming(obj_sub, input$cluster_select, cluster_vals, "cluster_rename")
-      
-      # Update reactive values
-      data_temp(obj_sub)
-      subsetDone(TRUE)
-      
-      # Update plots
-      update_plots(output, obj_sub, input$sample_select, input$cluster_select)
-      
-      removeModal()
-      showNotification("Subset and renaming completed successfully!", type = "message")
-      
-    }, error = function(e) {
-      removeModal()
-      showNotification(paste("Error:", e$message), type = "error")
-    })
-  })
-  
-  # Helper function to get selected values
-  get_selected_values <- function(obj, col, prefix) {
-    vals <- as.character(unique(obj@meta.data[[col]]))
-    selected <- sapply(vals, function(val) {
-      if(isTRUE(input[[paste0(prefix, "_", val)]])) val else NA
-    })
-    na.omit(selected)
-  }
-  
-  # Helper function to get intersecting cells
-  get_intersecting_cells <- function(obj, sample_col, sample_vals, cluster_col, cluster_vals) {
-    sample_cells <- colnames(obj)[obj@meta.data[[sample_col]] %in% sample_vals]
-    cluster_cells <- colnames(obj)[obj@meta.data[[cluster_col]] %in% cluster_vals]
-    intersect(sample_cells, cluster_cells)
-  }
-  
-  # Helper function to apply renaming
-  apply_renaming <- function(obj, col, vals, prefix) {
-    for(val in vals) {
-      new_name <- input[[paste0(prefix, "_", val)]]
-      if(!is.null(new_name) && nzchar(new_name)) {
-        obj@meta.data[[col]] <- as.character(obj@meta.data[[col]])
-        obj@meta.data[[col]][obj@meta.data[[col]] == val] <- new_name
-      }
-    }
-    return(obj)
-  }
-  
-  # Helper function to update plots
-  update_plots <- function(output, obj, sample_col, cluster_col) {
+    # Render initial plots (using processedObj)
     output$sample_dimplot <- renderPlot({
-      DimPlot(obj, group.by = sample_col) + 
-        ggtitle(paste("Subset UMAP by", sample_col))
+      req(processedObj(), input$sample_select)
+      DimPlot(processedObj(), group.by = input$sample_select) + 
+        ggtitle(paste("Original UMAP by", input$sample_select))
     })
     
     output$cluster_dimplot <- renderPlot({
-      DimPlot(obj, group.by = cluster_col) + 
-        ggtitle(paste("Subset UMAP by", cluster_col))
+      req(processedObj(), input$cluster_select)
+      DimPlot(processedObj(), group.by = input$cluster_select) + 
+        ggtitle(paste("Original UMAP by", input$cluster_select))
     })
-  }
-  observeEvent(c(input$sample_select, input$cluster_select), {
-    req(processedObj())
-    update_plots(output, processedObj(), input$sample_select, input$cluster_select)
-  })
+    
+    # Dynamic UI for sample subset and rename
+    output$sample_subset_rename_ui <- renderUI({
+      req(processedObj(), input$sample_select)
+      vals <- sort(unique(processedObj()@meta.data[[input$sample_select]]))
+      
+      tagList(
+        h5("Subset Samples"),
+        lapply(vals, function(val) {
+          fluidRow(
+            column(4,
+                   checkboxInput(paste0("sample_cb_", val), label = val, value = TRUE)
+            ),
+            column(8,
+                   textInput(paste0("sample_rename_", val), label = NULL, value = val,
+                             placeholder = "New name")
+            )
+          )
+        }))
+    })
+      
+      # Dynamic UI for cluster subset and rename
+      output$cluster_subset_rename_ui <- renderUI({
+        req(processedObj(), input$cluster_select)
+        vals <- sort(unique(processedObj()@meta.data[[input$cluster_select]]))
+        
+        
+        tagList(
+          h5("Subset Cell Clusters"),
+          lapply(vals, function(val) {
+            fluidRow(
+              column(4,
+                     checkboxInput(paste0("cluster_cb_", val), label = val, value = TRUE)
+              ),
+              column(8,
+                     textInput(paste0("cluster_rename_", val), label = NULL, value = val,
+                               placeholder = "New name")
+              )
+            )
+          }))
+      })
+        
+        # Enable/disable rename inputs based on checkbox state
+        observe({
+          req(processedObj(), input$sample_select)
+          vals <- sort(unique(processedObj()@meta.data[[input$sample_select]]))
+          lapply(vals, function(val) {
+            cb_id <- paste0("sample_cb_", val)
+            rename_id <- paste0("sample_rename_", val)
+            shinyjs::toggleState(id = rename_id, condition = isTRUE(input[[cb_id]]))
+          })
+        })
+        
+        observe({
+          req(processedObj(), input$cluster_select)
+          vals <- sort(unique(processedObj()@meta.data[[input$cluster_select]]))
+          lapply(vals, function(val) {
+            cb_id <- paste0("cluster_cb_", val)
+            rename_id <- paste0("cluster_rename_", val)
+            shinyjs::toggleState(id = rename_id, condition = isTRUE(input[[cb_id]]))
+          })
+        })
+        
+        observeEvent(input$run_subset_btn, {
+          req(processedObj(), input$sample_select, input$cluster_select)
+          obj <- processedObj()
+          
+          showModal(modalDialog(
+            title = "Processing Subset",
+            "Applying subset and rename operations...",
+            footer = NULL,
+            easyClose = FALSE
+          ))
+          
+          tryCatch({
+            # Get selected values with validation
+            sample_vals <- get_selected_values(obj, input$sample_select, "sample_cb")
+            cluster_vals <- get_selected_values(obj, input$cluster_select, "cluster_cb")
+            
+            # Validate at least one sample and cluster is selected
+            validate(
+              need(length(sample_vals) > 0, "Please select at least one sample"),
+              need(length(cluster_vals) > 0, "Please select at least one cluster")
+            )
+            
+            # Get intersecting cells with validation
+            keep_cells <- get_intersecting_cells(obj, input$sample_select, sample_vals, 
+                                                 input$cluster_select, cluster_vals)
+            
+            validate(
+              need(length(keep_cells) > 0, 
+                   "No cells match the selected criteria. Please adjust your subsetting options.")
+            )
+            # Create subset
+            obj_sub <- subset(obj, cells = keep_cells)
+            
+            sample_table <- data.frame(
+              `Selected Sample` = sample_vals,
+              `Renamed Value` = sapply(sample_vals, function(val) {
+                new_name <- input[[paste0("sample_rename_", val)]]
+                ifelse(!is.null(new_name) && nzchar(new_name), new_name, val)
+              }),
+              check.names = FALSE
+            )
+            
+            cluster_table <- data.frame(
+              `Selected Cluster` = cluster_vals,
+              `Renamed Value` = sapply(cluster_vals, function(val) {
+                new_name <- input[[paste0("cluster_rename_", val)]]
+                ifelse(!is.null(new_name) && nzchar(new_name), new_name, val)
+              }),
+              check.names = FALSE
+            )
+            
+            sample_rename_info(sample_table)
+            cluster_rename_info(cluster_table)
+            
+            # Apply renaming
+            obj_sub <- apply_renaming(obj_sub, input$sample_select, sample_vals, "sample_rename")
+            obj_sub <- apply_renaming(obj_sub, input$cluster_select, cluster_vals, "cluster_rename")
+            
+            # Update reactive values
+            data_temp(obj_sub)
+            subsetDone(TRUE)
+            
+            # Update plots
+            update_plots(output, obj_sub, input$sample_select, input$cluster_select)
+            
+            removeModal()
+            showNotification("Subset and renaming completed successfully!", type = "message")
+            
+          }, error = function(e) {
+            removeModal()
+            showNotification(paste("Error:", e$message), type = "error")
+          })
+        })
+        
+        # Helper function to get selected values
+        get_selected_values <- function(obj, col, prefix) {
+          vals <- as.character(unique(obj@meta.data[[col]]))
+          selected <- sapply(vals, function(val) {
+            if(isTRUE(input[[paste0(prefix, "_", val)]])) val else NA
+          })
+          na.omit(selected)
+        }
+        
+        # Helper function to get intersecting cells
+        get_intersecting_cells <- function(obj, sample_col, sample_vals, cluster_col, cluster_vals) {
+          sample_cells <- colnames(obj)[obj@meta.data[[sample_col]] %in% sample_vals]
+          cluster_cells <- colnames(obj)[obj@meta.data[[cluster_col]] %in% cluster_vals]
+          intersect(sample_cells, cluster_cells)
+        }
+        
+        # Helper function to apply renaming
+        apply_renaming <- function(obj, col, vals, prefix) {
+          for(val in vals) {
+            new_name <- input[[paste0(prefix, "_", val)]]
+            if(!is.null(new_name) && nzchar(new_name)) {
+              obj@meta.data[[col]] <- as.character(obj@meta.data[[col]])
+              obj@meta.data[[col]][obj@meta.data[[col]] == val] <- new_name
+            }
+          }
+          return(obj)
+        }
+        
+        # Helper function to update plots
+        update_plots <- function(output, obj, sample_col, cluster_col) {
+          output$sample_dimplot <- renderPlot({
+            DimPlot(obj, group.by = sample_col) + 
+              ggtitle(paste("Subset UMAP by", sample_col))
+          })
+          
+          output$cluster_dimplot <- renderPlot({
+            DimPlot(obj, group.by = cluster_col) + 
+              ggtitle(paste("Subset UMAP by", cluster_col))
+          })
+        }
+        observeEvent(c(input$sample_select, input$cluster_select), {
+          req(processedObj())
+          update_plots(output, processedObj(), input$sample_select, input$cluster_select)
+        })
   
   output$start_cluster_ui <- renderUI({
     obj <- processedObj()
@@ -871,7 +899,7 @@ server <- function(input, output, session) {
         sum(sample_id_vec == s & remaining)
       })
     )
-    
+    stats_df(stats_df)
     total_row <- data.frame(
       Sample = "All_samples",
       Original = sum(stats_df$Original),
@@ -988,6 +1016,72 @@ server <- function(input, output, session) {
           }
         }
       }
+      # DOC
+      format_table_txt <- function(df) {
+        if (is.null(df) || nrow(df) == 0) return("No data")
+        
+        col_names <- names(df)
+        col_widths <- sapply(col_names, function(n) max(nchar(n), max(nchar(as.character(df[[n]])))))
+        
+        separator <- paste0("+", paste0(sapply(col_widths, function(w) paste0(rep("-", w + 2), collapse = "")), "+", collapse = ""))
+        
+        header <- paste0("|", paste0(sapply(seq_along(col_names), function(i) {
+          sprintf(" %-*s ", col_widths[i], col_names[i])
+        }), "|", collapse = ""))
+        
+        rows <- apply(df, 1, function(row) {
+          paste0("|", paste0(sapply(seq_along(row), function(i) {
+            sprintf(" %-*s ", col_widths[i], as.character(row[i]))
+          }), "|", collapse = ""))
+        })
+        
+        c(separator, header, separator, rows, separator)
+      }
+      
+      param_doc_content <- paste0(
+        "===========================================\n",
+        "LAMIAN ANALYSIS PARAMETERS\n",
+        "Project: ", project_name, "\n",
+        "Date: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n",
+        "===========================================\n\n",
+        
+        "STEP 1: \n",
+        "RDS file path: ", input$data_path, "\n",
+        "Whether perform Harmony: ", input$do_harmony, "\n",
+        "Harmony Sample index: ", if(input$do_harmony){input$group_by_vars}else{NA}, "\n",
+        "Number of PCA for Harmony: ", if(input$do_harmony){input$dims_use}else{NA}, "\n\n",
+        
+        "STEP 2: \n",
+        "Sample Index: ", input$sample_select, "\n",
+        "Sample select and rename:\n",
+        paste(format_table_txt(sample_rename_info()), collapse = "\n"), "\n\n",
+        "Cluster Index: ", input$cluster_select, "\n",
+        "Cluster select and rename:\n",
+        paste(format_table_txt(cluster_rename_info()), collapse = "\n"), "\n\n",
+        
+        "STEP 3: \n",
+        "Reduction dimention: ", input$step3_reduction, "\n",
+        "Root cluster: ", input$step3_start_cluster, "\n",
+        "Lineage: ", input$selected_lineage, "\n\n",
+        
+        "STEP 4: \n",
+        "Minimum of Non-zero Cells: ", input$non_zero_num, "\n",
+        "Lower pseudotime quantile: ", input$lower_quantile, "\n",
+        "Upper pseudotime quantile: ", input$upper_quantile, "\n",
+        "Sample number:\n",
+        paste(format_table_txt(stats_df()), collapse = "\n"), "\n\n",
+        
+        "STEP 5: \n",
+        "Output file path: ", input$output_path, "\n",
+        "Design matrix:\n",
+        paste(format_table_txt(design_matrix()), collapse = "\n"), "\n",
+        "Maximum knot for spline: ", input$max_knot, "\n",
+        "Permutation iterations: ", input$perm_iter, "\n",
+        "Task duration: ", input$task_duration, "\n\n"
+      )
+      
+      param_file <- file.path(output_file_path, "parameters.txt")
+      writeLines(param_doc_content, param_file)
       
       step5_result <- step5(
         data = processedObj(),
