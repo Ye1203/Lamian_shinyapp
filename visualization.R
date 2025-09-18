@@ -208,44 +208,46 @@ dataVisualization_server <- function(input, output, session) {
                    tags$div(
                      id = "single_gene_analysis_desc", class = "description-panel",
                      style = "display: none;",
-                       h3("Single Gene Analysis Description"),
-                       h4("Analyze specific genes.", style = "color: grey;"),
-                       hr(),
-                       h4("1. Select appropriate dimensions"),
-                       p("Since harmony and PCA may have mixing of different biological categories under specific dimensions during visualization, before selecting genes for analysis, you can use \"X Axis\" and \"Y Axis\" to select dimensions where the biological categories in the Cell Cluster plot are separated and pseudotime is continuous."),
+                     h3("Single Gene Analysis Description"),
+                     h4("Analyze specific genes.", style = "color: grey;"),
+                     hr(),
+                     h4("1. Select appropriate dimensions"),
+                     p("Since harmony and PCA may have mixing of different biological categories under specific dimensions during visualization, before selecting genes for analysis, you can use \"X Axis\" and \"Y Axis\" to select dimensions where the biological categories in the Cell Cluster plot are separated and pseudotime is continuous."),
                      hr(),  
                      h4("2. Select genes"),
-                       p("a. Click ",
-                         tags$span(style = "color:#5CB85C; font-weight:bold", "\"Select Gene\""),
-                         " to enter the gene selection page."
-                       ),
-                       p("b. In the selection page, you can sort ascending or descending and use the search function. Scroll horizontally to view all column names."),
-                       p("c. Click the row of the gene you want to analyze, then click ",
-                         tags$span(style = "color:#337AB7; font-weight:bold", "\"Confirm\""),
-                         " to confirm the gene."
-                       ),
-                       h4("View cell cluster and pseudotime distributions"),
-                       p("Besides the Cell Cluster plot and Pseudotime plot shown automatically at the start, you can also click ",
-                         tags$span(style = "color:#929292; font-weight:bold", "\"Reset\""),
-                         " after selecting genes to re-display these two plots."
-                       ),
+                     p("a. Click ",
+                       tags$span(style = "color:#5CB85C; font-weight:bold", "\"Select Gene\""),
+                       " to enter the gene selection page."
+                     ),
+                     p("b. In the selection page, you can sort ascending or descending and use the search function. Scroll horizontally to view all column names."),
+                     p("c. Click the row of the gene you want to analyze, then click ",
+                       tags$span(style = "color:#337AB7; font-weight:bold", "\"Confirm\""),
+                       " to confirm the gene."
+                     ),
+                     h4("View cell cluster and pseudotime distributions"),
+                     p("Besides the Cell Cluster plot and Pseudotime plot shown automatically at the start, you can also click ",
+                       tags$span(style = "color:#929292; font-weight:bold", "\"Reset\""),
+                       " after selecting genes to re-display these two plots."
+                     ),
                      hr(),
-                       h4("3. Different plots"),
-                       p("When no gene is selected, two plots are displayed: the Cell Cluster plot and the Pseudotime plot, which are used to observe classifications of different biological cell types and pseudotime distributions."),
-                       br(),
-                       p("After gene selection, four plots are shown: population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot."),
-                       p("Input \"Number of pseudotime's bin\" for bin pseudotime t-test plot. The program applies a mixed model to each bin based on the number of bins to calculate the final p-value, followed by FDR correction. If the FDR is greater than 0.05, it is considered not significant. Otherwise, if the mean of test.variable=1 is greater than test.variable=0, it is marked as \"+\"; otherwise, it is marked as \"-\"."),
-                       p("Click \"Show individual data points (Plot3)\" to display cell points in the pseudotime variation plot of different Samples."),
-                       p("Click \"Show error bar (Plot3)\" to show the error bar of Plot3."),
-                       p("Click \"Include zero-expression cells (Plot4)\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
-                       p("Uncheck \"Sample included\" to remove the corresponding sample from the pseudotime variation plot, facilitating observation of relationships among other samples."),
+                     h4("3. Different plots"),
+                     p("When no gene is selected, two plots are displayed: the Cell Cluster plot and the Pseudotime plot, which are used to observe classifications of different biological cell types and pseudotime distributions."),
+                     br(),
+                     p("After gene selection, four plots are shown: population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot."),
+                     p("Input \"Number of pseudotime's bin\" for bin pseudotime t-test plot. The program applies a mixed model to each bin based on the number of bins to calculate the final p-value, followed by FDR correction. If the FDR is greater than 0.05, it is considered not significant. Otherwise, if the mean of test.variable=1 is greater than test.variable=0, it is marked as \"+\"; otherwise, it is marked as \"-\"."),
+                     p("Select \"Statistical significance\" to choose whether to perform FDR correction."),
+                     p("Click \"Find bins with max non-significant\" then select the search range and start searching to find bins with max non-siginifcant counts."),
+                     p("Click \"Show individual data points (Plot3)\" to display cell points in the pseudotime variation plot of different Samples."),
+                     p("Click \"Show error bar (Plot3)\" to show the error bar of Plot3."),
+                     p("Click \"Include zero-expression cells (Plot4)\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
+                     p("Uncheck \"Sample included\" to remove the corresponding sample from the pseudotime variation plot, facilitating observation of relationships among other samples."),
                      hr(),  
                      h4("4. Save images"),
-                       p("At any time (whether genes are selected or not), you can click ",
-                         tags$span(style = "color:#337AB7; font-weight:bold", "\"Save Plot to result folder\""),
-                         " to save displayed plots to the Result folder at visualization_YYYYmmddHHMM/HEATMAP. If no gene is selected, the two plots will be saved in the reduction folder; otherwise, they will be saved in the folder corresponding to the gene name. Meanwhile, a COMBINED folder will be generated including gene information and all four plots."
-                       )
-                     ),
+                     p("At any time (whether genes are selected or not), you can click ",
+                       tags$span(style = "color:#337AB7; font-weight:bold", "\"Save Plot to result folder\""),
+                       " to save displayed plots to the Result folder at visualization_YYYYmmddHHMM/HEATMAP. If no gene is selected, the two plots will be saved in the reduction folder; otherwise, they will be saved in the folder corresponding to the gene name. Meanwhile, a COMBINED folder will be generated including gene information and all four plots."
+                     )
+                   ),
                    uiOutput("gene_ui")
           ),
           
@@ -265,16 +267,16 @@ dataVisualization_server <- function(input, output, session) {
                      p("b. Click \"",
                        tags$span(style = "color:#C95C54; font-weight:bold", "Clear All"),
                        "\" to clear all genes."),
-                    hr(),
-                    h4("2. Option for visualization"),
-                    p("Click \"Show individual data points\" to display cell points in the pseudotime variation plot of different Samples."),
-                    p("Click \"Include zero-expression cells\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
-                   hr(),
-                   h4("3. Start Analysis"),
-                   p("Click \"",
-                     tags$span(style = "color:#4678B2; font-weight:bold", "Start Analysis"),
-                     "\" to start analysis. All the gene file will be save to the Result folder at visualization_YYYYmmddHHMM/HEATMAP/COMBINED, included gene name, information, population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot. There will also be a \"gene_direction_summary.xlsx\" file which includes the count of bin pseudotime (Minus, NS, Plus, NA)")
-                    ),
+                     hr(),
+                     h4("2. Option for visualization"),
+                     p("Click \"Show individual data points\" to display cell points in the pseudotime variation plot of different Samples."),
+                     p("Click \"Include zero-expression cells\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
+                     hr(),
+                     h4("3. Start Analysis"),
+                     p("Click \"",
+                       tags$span(style = "color:#4678B2; font-weight:bold", "Start Analysis"),
+                       "\" to start analysis. All the gene file will be save to the Result folder at visualization_YYYYmmddHHMM/HEATMAP/COMBINED, included gene name, information, population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot. There will also be a \"gene_direction_summary.xlsx\" file which includes the count of bin pseudotime (Minus, NS, Plus, NA)")
+                   ),
                    uiOutput("multi_gene_ui")
           ),
           
@@ -296,16 +298,16 @@ dataVisualization_server <- function(input, output, session) {
   })
   
   observeEvent(input$navlist, {
-  shinyjs::hide(".description-panel")
-  
-  desc_id <- switch(input$navlist,
-    "HEATMAP" = "heatmap_desc",
-    "SINGLE GENE ANALYSIS" = "single_gene_analysis_desc",
-    "MULTI GENE ANALYSIS" = "multi_gene_analysis_desc",
-    "DOWNLOAD VISUALIZATION" = "download_visualization_desc"
-  )
-  shinyjs::show(desc_id)
-}, ignoreInit = FALSE)
+    shinyjs::hide(".description-panel")
+    
+    desc_id <- switch(input$navlist,
+                      "HEATMAP" = "heatmap_desc",
+                      "SINGLE GENE ANALYSIS" = "single_gene_analysis_desc",
+                      "MULTI GENE ANALYSIS" = "multi_gene_analysis_desc",
+                      "DOWNLOAD VISUALIZATION" = "download_visualization_desc"
+    )
+    shinyjs::show(desc_id)
+  }, ignoreInit = FALSE)
   
   output$download_stat <- downloadHandler(
     filename = function() {"Lamian_statistical_result.xlsx"},
@@ -324,7 +326,6 @@ dataVisualization_server <- function(input, output, session) {
       }
     }
   )
-  
   
   parameters_content <- reactive({
     req(input$result_folder)
@@ -394,9 +395,9 @@ dataVisualization_server <- function(input, output, session) {
             placeholder = "Paste genes here:\nGene_A\nGene_B\nGene_C"
           ),
           actionButton("load_default", "fdr.overall < 0.05", 
-                                   class = "btn-primary", width = "100%"),
+                       class = "btn-primary", width = "100%"),
           actionButton("clear_genes", "Clear All", 
-                                   class = "btn-danger", width = "100%"),
+                       class = "btn-danger", width = "100%"),
           
           hr(),
           h4("Heatmap Parameters", class = "text-info"),
@@ -441,7 +442,7 @@ dataVisualization_server <- function(input, output, session) {
           
           actionButton("draw_plot", "Draw Plot", 
                        class = "btn-success", width = "100%"),
-
+          
           actionButton("save_heatmap_plot", "Save Plot", 
                        class = "btn-primary", width = "100%", disabled = TRUE),
           
@@ -455,7 +456,7 @@ dataVisualization_server <- function(input, output, session) {
             max = 1000,
             step = 1
           ),
-         
+          
           actionButton("save_heatmap_data", "Save Data", 
                        class = "btn-info", width = "100%", disabled = TRUE)
         )
@@ -470,6 +471,111 @@ dataVisualization_server <- function(input, output, session) {
     )
   })
   
+  output$gene_ui <- renderUI({
+    
+    fluidRow(
+      column(
+        width = 2,
+        style = "border-right: 1px solid #eee; padding-right: 15px;",
+        if(!is.na(gene_analysis_selected())) {
+          actionButton("original_btn", "Reset", 
+                       class = "btn-default", 
+                       style = "width: 100%; margin-bottom: 15px;")
+        },
+        actionButton("select_gene", "Select Gene", 
+                     class = "btn-success", 
+                     style = "width: 100%; margin-bottom: 15px;"),
+        actionButton("save_plot", "Save Plot", 
+                     class = "btn-primary", 
+                     style = "width: 100%; margin-bottom: 15px;"),
+        uiOutput("selected_gene_info")
+      ),
+      column(
+        width = 10,
+        uiOutput("gene_plot_ui", height = "800px")
+      )
+    )
+  })
+  
+  output$multi_gene_ui <- renderUI({
+    sig_genes <- rownames(stat()[stat()$fdr.overall < 0.05, ])
+    fluidRow(
+      column(
+        width = 3,
+        wellPanel(
+          style = "height: 90vh; overflow-y: auto;",
+          h4("Gene List Input", class = "text-primary"),
+          hr(),
+          textAreaInput(
+            inputId = "multi_gene_list",
+            label = "Enter genes (one per line):",
+            value = if(length(sig_genes) > 0) paste(sig_genes, collapse = "\n") else "",
+            rows = 10,
+            placeholder = "Paste genes here:\nGene_A\nGene_B\nGene_C"
+          ),
+          actionButton("load_default_multi", "fdr.overall < 0.05", 
+                       class = "btn-primary", width = "100%"),
+          actionButton("clear_genes_multi", "Clear All", 
+                       class = "btn-danger", width = "100%"),
+          hr(),
+          numericInput("multi_bin_number", "Number of Bin Input for the Analysis:", min = 3, max = 30, value = 10),
+          radioButtons(
+            "multi_using_p_adj",
+            "Statistical significance:",
+            choices = c(
+              "Raw p-value" = "pvalue",
+              "FDR adjusted" = "p_adjust"
+            ),
+            selected = "p_adjust",
+            inline = TRUE
+          ),
+          checkboxInput("show_points_multi", "Show individual data points", 
+                        value = FALSE, width = "100%"),
+          checkboxInput("show_error_bar_multi", "Show error bar", 
+                        value = FALSE, width = "100%"),
+          conditionalPanel(
+            condition = "input.show_error_bar_multi == true",
+            sliderInput("confidence_level_multi", "Confidence Level:",
+                        min = 90, max = 99.9, value = 95, step = 0.1,
+                        post = "%", width = "100%")
+          ),
+          checkboxInput("included_zero_multi", "Include zero-expression cells", 
+                        value = FALSE, width = "100%"),
+          hr(),
+          actionButton("save_multi_gene", "Start Analysis", 
+                       class = "btn btn-success", width = "100%")
+        )
+      ),
+      column(
+        width = 9,
+        wellPanel(
+          style = "height: 90vh; overflow-y: auto;",
+          h4("Analysis Progress", class = "text-primary"),
+          hr(),
+          p("Click 'Start Analysis' to begin processing. A progress window will appear.")
+        )
+      )
+    )
+  })
+  
+  output$download_tab_content <- renderUI({
+    fluidRow(
+      column(12,
+             div(
+               style = "color: red; font-weight: bold; margin-bottom: 15px;",
+               icon("exclamation-triangle"), 
+               "If you have not generated any visualization files yet. Please use \"HEATMAP\", \"SINGLE GENE ANALYSIS\" or \"MULTI GENE ANALYSIS\" to generate them first."
+             ),
+             downloadButton(
+               "download_visualization", 
+               label = "Download All Visualization Files",
+               style = "width: 100%;"
+             )
+      )
+    )
+  })
+  
+  #HEATMAP UI
   observeEvent(input$load_default, {
     sig_genes <- rownames(stat()[stat()$fdr.overall < 0.05, ])
     updateTextAreaInput(
@@ -552,7 +658,7 @@ dataVisualization_server <- function(input, output, session) {
     heatmap_plot(result$plot)
     heatmap_data(result$df)
     heatmap_name(result$names)
-  
+    
     if(!is.null(result$plot)) {
       output$heatmap_display <- renderPlot({
         result$plot
@@ -728,7 +834,7 @@ dataVisualization_server <- function(input, output, session) {
         extract_samples("scale1_"),
         extract_samples("raw0_"),
         extract_samples("raw1_") 
-
+        
       )
       
       if (is.null(result_visulization_folder())) {
@@ -760,32 +866,8 @@ dataVisualization_server <- function(input, output, session) {
     })
   })
   
-  output$gene_ui <- renderUI({
-    
-    fluidRow(
-      column(
-        width = 2,
-        style = "border-right: 1px solid #eee; padding-right: 15px;",
-        if(!is.na(gene_analysis_selected())) {
-          actionButton("original_btn", "Reset", 
-                       class = "btn-default", 
-                       style = "width: 100%; margin-bottom: 15px;")
-        },
-        actionButton("select_gene", "Select Gene", 
-                     class = "btn-success", 
-                     style = "width: 100%; margin-bottom: 15px;"),
-        actionButton("save_plot", "Save Plot", 
-                     class = "btn-primary", 
-                     style = "width: 100%; margin-bottom: 15px;"),
-        uiOutput("selected_gene_info")
-      ),
-      column(
-        width = 10,
-        uiOutput("gene_plot_ui", height = "800px")
-      )
-    )
-  })
   
+  #GENE UI
   observeEvent(input$select_gene, {
     req(xde_result())
     showModal(modalDialog(
@@ -876,10 +958,55 @@ dataVisualization_server <- function(input, output, session) {
           fluidRow(
             column(
               6, 
-              numericInput("bin_number", "Number of pseudotime's bin:", min = 3, max = 30, value = 10)
-            )
+              numericInput("bin_number", "Number of Bin Input for the Analysis (Plot2):", min = 3, max = 50, value = 10)
+            ),
+            column(
+              6,
+              radioButtons(
+                "using_p_adj",
+                "Statistical significance (Plot2):",
+                choices = c(
+                  "Raw p-value" = "pvalue",
+                  "FDR adjusted" = "p_adjust"
+                ),
+                selected = "p_adjust",
+                inline = TRUE
+              ))
+          ),
+          checkboxInput(
+            "search_nonsig_bins",
+            tags$span(icon("search"), "Find bins with max non-significant counts"),
+            value = FALSE
           ),
           
+          fluidRow(
+            column(9,
+                   conditionalPanel(
+                     condition = "input.search_nonsig_bins == true",
+                     sliderInput(
+                       "search_bin_range",
+                       "",
+                       min = 5,
+                       max = 50,
+                       value = c(5, 30),
+                       step = 1,
+                       width = "100%",
+                       ticks = TRUE
+                     )
+                   )
+            ),
+            column(3,
+                   conditionalPanel(
+                     condition = "input.search_nonsig_bins == true",
+                     div(style = "display: flex; align-items: center; height: 100%; min-height: 60px;",
+                         actionButton("search_bin", "Search", 
+                                      icon = icon("search"),
+                                      class = "btn-primary",
+                                      width = "100%")
+                     )
+                   )
+            )
+          ),
           splitLayout(
             cellWidths = c("50%", "50%"),
             checkboxInput("show_points", "Show individual data points (Plot3)", 
@@ -899,7 +1026,6 @@ dataVisualization_server <- function(input, output, session) {
               )
             )
           ),
-          
           fluidRow(
             column(
               6,
@@ -926,6 +1052,174 @@ dataVisualization_server <- function(input, output, session) {
     }
   })
   
+  observeEvent(input$search_bin, {
+    req(input$search_nonsig_bins, input$search_bin_range, gene_analysis_selected(), xde_result())
+    
+    showModal(modalDialog(
+      title = "Calculating",
+      tags$h4("Searching for bin number with maximum significant points..."),
+      tags$br(),
+      progressBar(
+        id = "search_progress",
+        value = 0,
+        title = "Progress:",
+        display_pct = TRUE
+      ),
+      footer = NULL,
+      easyClose = FALSE,
+      size = "m"
+    ))
+    
+    bin_range <- input$search_bin_range
+    min_bins <- bin_range[1]
+    max_bins <- bin_range[2]
+    total_bins <- max_bins - min_bins + 1
+    gene_name <- gene_analysis_selected()
+    
+    search_results <- data.frame(
+      bin_number = integer(),
+      significant_count = integer(),
+      stringsAsFactors = FALSE
+    )
+    
+    gene_expr <- xde_result()$expr[gene_name, ]
+    for (n_bins in min_bins:max_bins) {
+      
+      up_value = round(((n_bins+1-min_bins) / total_bins) * 100)
+      
+      pseudotime_bins <- cut(xde_result()$pseudotime, breaks = n_bins, labels = FALSE)
+      analysis_data <- data.frame(
+        expr = as.numeric(gene_expr),
+        cell_id = names(gene_expr),
+        pseudotime_bin = pseudotime_bins,
+        pseudotime = xde_result()$pseudotime  
+      )
+      
+      analysis_data <- merge(analysis_data, xde_result()$cellanno, by.x = "cell_id", by.y = "Cell")
+      analysis_data <- merge(analysis_data, xde_result()$design, by.x = "Sample", by.y = "row.names")
+      
+      results <- data.frame(
+        bin = 1:n_bins,
+        mean_0 = numeric(n_bins),
+        mean_1 = numeric(n_bins),
+        p_value = numeric(n_bins),
+        stringsAsFactors = FALSE
+      )
+      
+      for (i in 1:n_bins) {
+        bin_data <- analysis_data[analysis_data$pseudotime_bin == i, ]
+        
+        intercept_index <- which(colnames(bin_data) == "intercept")
+        treatment_col <- colnames(bin_data)[intercept_index + 1]
+        
+        confounder_cols <- colnames(bin_data)[(intercept_index + 2):ncol(bin_data)]
+        
+        if (length(confounder_cols) > 0) {
+          model_formula <- as.formula(paste("expr ~", treatment_col, "+", 
+                                            paste(confounder_cols, collapse = " + "),
+                                            "+ (1 | Sample)"))
+        } else {
+          model_formula <- as.formula(paste("expr ~", treatment_col, "+ (1 | Sample)"))
+        }
+        
+        if (nrow(bin_data) > n_bins) {  
+          tryCatch({
+            suppressMessages(suppressWarnings({
+              model <- lmer(model_formula, data = bin_data)
+            }))
+            
+            model_summary <- summary(model)
+            treatment_coef <- which(rownames(model_summary$coefficients) == treatment_col)
+            
+            if (length(treatment_coef) > 0) {
+              results$p_value[i] <- model_summary$coefficients[treatment_coef, "Pr(>|t|)"]
+            } else {
+              results$p_value[i] <- NA
+            }
+            
+          }, error = function(e) {
+            results$p_value[i] <- NA
+          })
+        } else {
+          results$p_value[i] <- NA
+        }
+        
+        expr_0 <- bin_data$expr[bin_data[[treatment_col]] == 0]
+        expr_1 <- bin_data$expr[bin_data[[treatment_col]] == 1]
+        results$mean_0[i] <- mean(expr_0, na.rm = TRUE)
+        results$mean_1[i] <- mean(expr_1, na.rm = TRUE)
+      }
+      
+      if(input$using_p_adj == "pvalue"){
+        results$significant <- ifelse(is.na(results$p_value), NA, 
+                                      ifelse(results$p_value < 0.05, TRUE, FALSE))
+      } else {
+        valid_p_indices <- which(!is.na(results$p_value))
+        if (length(valid_p_indices) > 0) {
+          results$p_adjusted <- NA
+          results$p_adjusted[valid_p_indices] <- p.adjust(results$p_value[valid_p_indices], method = "fdr")
+        }
+        results$significant <- ifelse(is.na(results$p_adjusted), NA,
+                                      ifelse(results$p_adjusted < 0.05, TRUE, FALSE))
+      }
+      
+      sig_count <- sum(results$significant == TRUE, na.rm = TRUE)
+      
+      search_results <- rbind(search_results, data.frame(
+        bin_number = n_bins,
+        significant_count = sig_count
+      ))
+      updateProgressBar(
+        session = session,
+        id = "search_progress",
+        value = up_value,
+        title = paste("Processing bin", n_bins, "of", max_bins)
+      )
+      Sys.sleep(0.01)
+    }
+    
+    max_sig_count <- max(search_results$significant_count, na.rm = TRUE)
+    max_sig_bins <- search_results$bin_number[search_results$significant_count == max_sig_count]
+    
+    optimal_bins <- min(max_sig_bins)
+    
+    removeModal()
+    
+    showModal(modalDialog(
+      title = "Search Results",
+      tags$h4(paste("Optimal bin number:", optimal_bins)),
+      tags$h5(paste("Maximum significant bins:", max_sig_count)),
+      if (length(max_sig_bins) > 1) {
+        tags$p(paste("Other bin numbers with same significance:", 
+                     paste(setdiff(max_sig_bins, optimal_bins), collapse = ", ")),
+               style = "color: blue;")
+      },
+      tags$hr(),
+      tags$h4("All Results (Grouped by significance count):"),
+      
+      renderTable({
+        grouped_results <- split(search_results$bin_number, search_results$significant_count)
+        
+        result_table <- data.frame(
+          `Total Significant Bins` = as.numeric(names(grouped_results)),
+          `Number of Bin Input for the Analysis` = sapply(grouped_results, function(x) {
+            paste(sort(x), collapse = ", ") 
+          }),
+          stringsAsFactors = FALSE,
+          check.names = FALSE  
+        )
+        
+        result_table <- result_table[order(-result_table$`Total Significant Bins`), ]
+        
+        result_table
+      }, digits = 0, na = "", align = 'c', width = "100%"),
+      footer = modalButton("Close"),
+      size = "l",
+      easyClose = TRUE
+    ))
+    
+    updateNumericInput(session, "bin_number", value = optimal_bins)
+  })
   
   observeEvent(input$show_points, {
     show_points(input$show_points)
@@ -1001,129 +1295,6 @@ dataVisualization_server <- function(input, output, session) {
     )
   })
   
-  observeEvent(input$save_plot, {
-    req(input$result_folder)  
-    if (is.null(result_visulization_folder())) {
-      time_str <- format(Sys.time(), "%Y%m%d%H%M")
-      vis_dir <- file.path(input$result_folder, paste0("visualization_", time_str))
-      if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
-      result_visulization_folder(vis_dir)
-    }
-    vis_dir <- result_visulization_folder()
-    
-    tryCatch({
-      if (is.na(gene_analysis_selected())) {
-        reduction_dir <- file.path(vis_dir, "reduction")
-        if (!dir.exists(reduction_dir)) dir.create(reduction_dir)
-        
-        pdf(file.path(reduction_dir, "Cluster.pdf"), width = 8, height = 6)
-        print(gene_plot1_NA())
-        dev.off()
-        
-        pdf(file.path(reduction_dir, "Pseudotime.pdf"), width = 8, height = 6)
-        print(gene_plot2_NA())
-        dev.off()
-        
-        sample_number <- length(unique(xde_result()$cellanno$Sample))
-        pdf(file.path(reduction_dir, "Combined_Plots.pdf"), width = 2 * (13.5 / sample_number) + 4, height = 6)
-        plot1_with_theme <- gene_plot1_NA() + theme(legend.position = "right", legend.width = unit(2, "inches"))
-        plot2_with_theme <- gene_plot2_NA() + theme(legend.position = "right", legend.width = unit(2, "inches"))
-        
-        grid.arrange(plot1_with_theme, plot2_with_theme, nrow = 1)
-        dev.off()
-        
-        showNotification("Cluster and Pseudotime plots saved successfully!", type = "message")
-      } else {
-        gene_dir <- file.path(vis_dir, gene_analysis_selected())
-        if (!dir.exists(gene_dir)) dir.create(gene_dir)
-        combined_dir <- file.path(vis_dir, "COMBINED")
-        if (!dir.exists(combined_dir)) dir.create(combined_dir)
-        
-        pdf(file.path(gene_dir, "PopulationPlot.pdf"), width = 8, height = 6)
-        print(gene_plot1())
-        dev.off()
-        
-        pdf(file.path(gene_dir, "Bin.pdf"), width = 8, height = 6)
-        print(gene_plot2())
-        dev.off()
-        
-        pdf(file.path(gene_dir, "SamplePlot.pdf"), width = 8, height = 6)
-        print(gene_plot3())
-        dev.off()
-        
-        pdf(file.path(gene_dir, "ReductionSplitPlot.pdf"), width = 16, height = 6)
-        print(gene_plot4())
-        dev.off()
-        
-        write.xlsx(gene_plot2()$data, file.path(gene_dir, "Bin_result.xlsx"))
-        
-        pdf(file.path(combined_dir, paste0(gene_analysis_selected(), ".pdf")), width = 20, height = 12)
-        
-        grid.newpage()
-
-        pushViewport(viewport(x = 0.05, y = 0.98, width = 0.15, height = 0.95, just = c("left","top")))
-        
-        gene_stats <- xde_result()$statistics[gene_analysis_selected(), , drop = FALSE]
-        info_text <- paste0(
-          "Gene:\n\t\t", gene_analysis_selected(), "\n\n",
-          paste(
-            sapply(colnames(gene_stats), function(col) {
-              paste0(col, ":\n\t\t", formatC(gene_stats[, col], format = "e", digits = 2))
-            }),
-            collapse = "\n\n"
-          )
-        )
-        
-        grid.text(
-          info_text,
-          x = 0,                 
-          y = 1,                 
-          gp = gpar(col = "darkred", fontface = "bold", cex = 1.2),
-          just = c("left", "top") 
-        )
-        
-        popViewport() 
-
-        
-        # p1
-        pushViewport(viewport(x = 0.18, y = 0.98, width = 0.24, height = 0.45, just = c("left","top")))
-        print(gene_plot1(), newpage = FALSE)
-        popViewport()
-        
-        # p2
-        pushViewport(viewport(x = 0.42, y = 0.98, width = 0.24, height = 0.45, just = c("left","top")))
-        print(gene_plot2(), newpage = FALSE)
-        popViewport()
-        
-        # p3
-        pushViewport(viewport(x = 0.66, y = 0.98, width = 0.24, height = 0.405, just = c("left","top")))
-        p3 <- gene_plot3()
-        p3_no_legend <- p3 + theme(legend.position = "none")
-        print(p3_no_legend, newpage = FALSE)
-        popViewport()
-        
-        pushViewport(viewport(x = 0.9, y = 0.98, width = 0.1, height = 0.405, just = c("left","top")))
-        legend <- get_legend(p3)
-        grid.draw(legend)
-        popViewport()
-        
-        # p4
-        pushViewport(viewport(x = 0.18, y = 0.5, width = 0.8, height = 0.48, just = c("left","top")))
-        print(gene_plot4(), newpage = FALSE)
-        popViewport()
-        
-        dev.off()
-        
-        
-        
-        showNotification(paste("Gene", gene_analysis_selected(), "plots saved successfully!"), 
-                         type = "message")
-      }
-    }, error = function(e) {
-      showNotification(paste("Save failed:", e$message), type = "error")
-    })
-  })
-  
   output$gene_plot1_NA <- renderPlot({
     req(sce())
     rd <- reducedDim(sce(), "UMAP")
@@ -1194,7 +1365,10 @@ dataVisualization_server <- function(input, output, session) {
   output$gene_plot2 <- renderPlot({
     req(gene_analysis_selected(), sce(), xde_result())
     gene_name <- gene_analysis_selected()
-    n_bins <- input$bin_number
+    bin_number_debounced <- reactive({
+      input$bin_number
+    }) %>% debounce(500)
+    n_bins <- bin_number_debounced()
     gene_expr <- xde_result()$expr[gene_name, ]
     pseudotime_bins <- cut(xde_result()$pseudotime, breaks = n_bins, labels = FALSE)
     
@@ -1260,26 +1434,45 @@ dataVisualization_server <- function(input, output, session) {
       results$mean_0[i] <- mean(expr_0, na.rm = TRUE)
       results$mean_1[i] <- mean(expr_1, na.rm = TRUE)
     }
+    
     valid_p_indices <- which(!is.na(results$p_value))
-    if (length(valid_p_indices) > 0) {
+    
+    if(input$using_p_adj == "pvalue"){
+      for (i in 1:n_bins) {
+        if (is.na(results$p_value[i])) {
+          results$significance[i] <- "NA"
+        } else {
+          if (results$p_value[i] < 0.001) {
+            results$significance[i] <- "***"
+          } else if (results$p_value[i] < 0.01) {
+            results$significance[i] <- "**"
+          } else if (results$p_value[i] < 0.05) {
+            results$significance[i] <- "*"
+          } else {
+            results$significance[i] <- "ns"
+          }
+        }
+      }
+    }else{if (length(valid_p_indices) > 0) {
       results$p_adjusted <- NA
       results$p_adjusted[valid_p_indices] <- p.adjust(results$p_value[valid_p_indices], method = "fdr")
     } else {
       results$p_adjusted <- NA
     }
-    
-    for (i in 1:n_bins) {
-      if (is.na(results$p_adjusted[i])) {
-        results$significance[i] <- "NA"
-      } else {
-        if (results$p_adjusted[i] < 0.001) {
-          results$significance[i] <- "***"
-        } else if (results$p_adjusted[i] < 0.01) {
-          results$significance[i] <- "**"
-        } else if (results$p_adjusted[i] < 0.05) {
-          results$significance[i] <- "*"
+      
+      for (i in 1:n_bins) {
+        if (is.na(results$p_adjusted[i])) {
+          results$significance[i] <- "NA"
         } else {
-          results$significance[i] <- "ns"
+          if (results$p_adjusted[i] < 0.001) {
+            results$significance[i] <- "***"
+          } else if (results$p_adjusted[i] < 0.01) {
+            results$significance[i] <- "**"
+          } else if (results$p_adjusted[i] < 0.05) {
+            results$significance[i] <- "*"
+          } else {
+            results$significance[i] <- "ns"
+          }
         }
       }
     }
@@ -1335,7 +1528,6 @@ dataVisualization_server <- function(input, output, session) {
     return(p)
   })
   
-  
   raw_combined_samples <- reactive({
     unique(c(
       if(is.null(input$selected_samples_left)) character(0) else input$selected_samples_left,
@@ -1344,7 +1536,6 @@ dataVisualization_server <- function(input, output, session) {
   })
   
   combined_samples <- debounce(raw_combined_samples, 500)
-  
   
   output$gene_plot3 <- renderPlot({
     # Require essential inputs
@@ -1460,42 +1651,41 @@ dataVisualization_server <- function(input, output, session) {
     return(p+theme(legend.position = "none"))
   })
   
-
   output$gene_plot4 <- renderPlot({
-  req(gene_analysis_selected(), sce(), xde_result())
-  
-  gene_name <- gene_analysis_selected()
-  reduced_dim <- reducedDim(sce(), "UMAP")
-  expr_values <- as.numeric(xde_result()$expr[gene_name, colnames(sce())])
-  
-  plot_df <- data.frame(
-    Dim1 = reduced_dim[,1],
-    Dim2 = reduced_dim[,2],
-    Expression = expr_values,
-    Sample = factor(sce()$sample) 
-  )
-  
-  all_samples <- levels(plot_df$Sample)
-  
-  if (!included_zero()) {
-    plot_df <- plot_df[plot_df$Expression > 0, ]
-    plot_df$Sample <- factor(plot_df$Sample, levels = all_samples)
-  }
-  
-  p <- ggplot(plot_df, aes(x = Dim1, y = Dim2)) +
-    {
-      if (nrow(plot_df) > 0) {
-        geom_point(aes(color = Expression), size = 0.5, alpha = 0.8)
-      } else {
-        geom_blank()
-      }
-    } +
-    scale_color_viridis_c() +
-    labs(x = colnames(reduced_dim)[1], 
-         y = colnames(reduced_dim)[2]) +
-    theme_minimal() +
-    facet_wrap(~ Sample, nrow = 1, drop = FALSE) +  
-    {if (included_zero() && length(setdiff(all_samples, unique(plot_df$Sample)))) {
+    req(gene_analysis_selected(), sce(), xde_result())
+    
+    gene_name <- gene_analysis_selected()
+    reduced_dim <- reducedDim(sce(), "UMAP")
+    expr_values <- as.numeric(xde_result()$expr[gene_name, colnames(sce())])
+    
+    plot_df <- data.frame(
+      Dim1 = reduced_dim[,1],
+      Dim2 = reduced_dim[,2],
+      Expression = expr_values,
+      Sample = factor(sce()$sample) 
+    )
+    
+    all_samples <- levels(plot_df$Sample)
+    
+    if (!included_zero()) {
+      plot_df <- plot_df[plot_df$Expression > 0, ]
+      plot_df$Sample <- factor(plot_df$Sample, levels = all_samples)
+    }
+    
+    p <- ggplot(plot_df, aes(x = Dim1, y = Dim2)) +
+      {
+        if (nrow(plot_df) > 0) {
+          geom_point(aes(color = Expression), size = 0.5, alpha = 0.8)
+        } else {
+          geom_blank()
+        }
+      } +
+      scale_color_viridis_c() +
+      labs(x = colnames(reduced_dim)[1], 
+           y = colnames(reduced_dim)[2]) +
+      theme_minimal() +
+      facet_wrap(~ Sample, nrow = 1, drop = FALSE) +  
+      {if (included_zero() && length(setdiff(all_samples, unique(plot_df$Sample)))) {
         geom_text(
           data = data.frame(Sample = setdiff(all_samples, unique(plot_df$Sample))),
           x = mean(range(reduced_dim[,1])),
@@ -1506,69 +1696,142 @@ dataVisualization_server <- function(input, output, session) {
           label.size = 0.5
         )
       }
-    } +
-    theme(
-      axis.title.x = element_text(size = 14),
-      axis.title.y = element_text(size = 14),
-      strip.text.x = element_text(size = 10),
-      theme(legend.position = "right", legend.width = unit(2, "inches"))
-    )
-  
-  gene_plot4(p)
-  return(p)
-})
-  
-  output$multi_gene_ui <- renderUI({
-    sig_genes <- rownames(stat()[stat()$fdr.overall < 0.05, ])
-    fluidRow(
-      column(
-        width = 3,
-        wellPanel(
-          style = "height: 90vh; overflow-y: auto;",
-          h4("Gene List Input", class = "text-primary"),
-          hr(),
-          textAreaInput(
-            inputId = "multi_gene_list",
-            label = "Enter genes (one per line):",
-            value = if(length(sig_genes) > 0) paste(sig_genes, collapse = "\n") else "",
-            rows = 10,
-            placeholder = "Paste genes here:\nGene_A\nGene_B\nGene_C"
-          ),
-          actionButton("load_default_multi", "fdr.overall < 0.05", 
-                                   class = "btn-primary", width = "100%"),
-          actionButton("clear_genes_multi", "Clear All", 
-                                   class = "btn-danger", width = "100%"),
-          hr(),
-          numericInput("multi_bin_number", "Number of pseudotime's bin:", min = 3, max = 30, value = 10),
-          checkboxInput("show_points_multi", "Show individual data points", 
-                                 value = FALSE, width = "100%"),
-          checkboxInput("show_error_bar_multi", "Show error bar", 
-                                 value = FALSE, width = "100%"),
-          conditionalPanel(
-            condition = "input.show_error_bar_multi == true",
-            sliderInput("confidence_level_multi", "Confidence Level:",
-                        min = 90, max = 99.9, value = 95, step = 0.1,
-                        post = "%", width = "100%")
-          ),
-          checkboxInput("included_zero_multi", "Include zero-expression cells", 
-                                 value = FALSE, width = "100%"),
-          hr(),
-          actionButton("save_multi_gene", "Start Analysis", 
-                       class = "btn btn-success", width = "100%")
-        )
-      ),
-      column(
-        width = 9,
-        wellPanel(
-          style = "height: 90vh; overflow-y: auto;",
-          h4("Analysis Progress", class = "text-primary"),
-          hr(),
-          p("Click 'Start Analysis' to begin processing. A progress window will appear.")
-        )
+      } +
+      theme(
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text.x = element_text(size = 10),
+        theme(legend.position = "right", legend.width = unit(2, "inches"))
       )
-    )
+    
+    gene_plot4(p)
+    return(p)
   })
   
+  observeEvent(input$save_plot, {
+    req(input$result_folder)  
+    if (is.null(result_visulization_folder())) {
+      time_str <- format(Sys.time(), "%Y%m%d%H%M")
+      vis_dir <- file.path(input$result_folder, paste0("visualization_", time_str))
+      if (!dir.exists(vis_dir)) dir.create(vis_dir, recursive = TRUE)
+      result_visulization_folder(vis_dir)
+    }
+    vis_dir <- result_visulization_folder()
+    
+    tryCatch({
+      if (is.na(gene_analysis_selected())) {
+        reduction_dir <- file.path(vis_dir, "reduction")
+        if (!dir.exists(reduction_dir)) dir.create(reduction_dir)
+        
+        pdf(file.path(reduction_dir, "Cluster.pdf"), width = 8, height = 6)
+        print(gene_plot1_NA())
+        dev.off()
+        
+        pdf(file.path(reduction_dir, "Pseudotime.pdf"), width = 8, height = 6)
+        print(gene_plot2_NA())
+        dev.off()
+        
+        sample_number <- length(unique(xde_result()$cellanno$Sample))
+        pdf(file.path(reduction_dir, "Combined_Plots.pdf"), width = 2 * (13.5 / sample_number) + 4, height = 6)
+        plot1_with_theme <- gene_plot1_NA() + theme(legend.position = "right", legend.width = unit(2, "inches"))
+        plot2_with_theme <- gene_plot2_NA() + theme(legend.position = "right", legend.width = unit(2, "inches"))
+        
+        grid.arrange(plot1_with_theme, plot2_with_theme, nrow = 1)
+        dev.off()
+        
+        showNotification("Cluster and Pseudotime plots saved successfully!", type = "message")
+      } else {
+        gene_dir <- file.path(vis_dir, gene_analysis_selected())
+        if (!dir.exists(gene_dir)) dir.create(gene_dir)
+        combined_dir <- file.path(vis_dir, "COMBINED")
+        if (!dir.exists(combined_dir)) dir.create(combined_dir)
+        
+        pdf(file.path(gene_dir, "PopulationPlot.pdf"), width = 8, height = 6)
+        print(gene_plot1())
+        dev.off()
+        
+        pdf(file.path(gene_dir, "Bin.pdf"), width = 8, height = 6)
+        print(gene_plot2())
+        dev.off()
+        
+        pdf(file.path(gene_dir, "SamplePlot.pdf"), width = 8, height = 6)
+        print(gene_plot3())
+        dev.off()
+        
+        pdf(file.path(gene_dir, "ReductionSplitPlot.pdf"), width = 16, height = 6)
+        print(gene_plot4())
+        dev.off()
+        
+        write.xlsx(gene_plot2()$data, file.path(gene_dir, "Bin_result.xlsx"))
+        
+        pdf(file.path(combined_dir, paste0(gene_analysis_selected(), ".pdf")), width = 20, height = 12)
+        
+        grid.newpage()
+        
+        pushViewport(viewport(x = 0.05, y = 0.98, width = 0.15, height = 0.95, just = c("left","top")))
+        
+        gene_stats <- xde_result()$statistics[gene_analysis_selected(), , drop = FALSE]
+        info_text <- paste0(
+          "Gene:\n\t\t", gene_analysis_selected(), "\n\n",
+          paste(
+            sapply(colnames(gene_stats), function(col) {
+              paste0(col, ":\n\t\t", formatC(gene_stats[, col], format = "e", digits = 2))
+            }),
+            collapse = "\n\n"
+          )
+        )
+        
+        grid.text(
+          info_text,
+          x = 0,                 
+          y = 1,                 
+          gp = gpar(col = "darkred", fontface = "bold", cex = 1.2),
+          just = c("left", "top") 
+        )
+        
+        popViewport() 
+        
+        
+        # p1
+        pushViewport(viewport(x = 0.18, y = 0.98, width = 0.24, height = 0.45, just = c("left","top")))
+        print(gene_plot1(), newpage = FALSE)
+        popViewport()
+        
+        # p2
+        pushViewport(viewport(x = 0.42, y = 0.98, width = 0.24, height = 0.45, just = c("left","top")))
+        print(gene_plot2(), newpage = FALSE)
+        popViewport()
+        
+        # p3
+        pushViewport(viewport(x = 0.66, y = 0.98, width = 0.24, height = 0.405, just = c("left","top")))
+        p3 <- gene_plot3()
+        p3_no_legend <- p3 + theme(legend.position = "none")
+        print(p3_no_legend, newpage = FALSE)
+        popViewport()
+        
+        pushViewport(viewport(x = 0.9, y = 0.98, width = 0.1, height = 0.405, just = c("left","top")))
+        legend <- get_legend(p3)
+        grid.draw(legend)
+        popViewport()
+        
+        # p4
+        pushViewport(viewport(x = 0.18, y = 0.5, width = 0.8, height = 0.48, just = c("left","top")))
+        print(gene_plot4(), newpage = FALSE)
+        popViewport()
+        
+        dev.off()
+        
+        
+        
+        showNotification(paste("Gene", gene_analysis_selected(), "plots saved successfully!"), 
+                         type = "message")
+      }
+    }, error = function(e) {
+      showNotification(paste("Save failed:", e$message), type = "error")
+    })
+  })
+  
+  #MULTI GENE UI
   observeEvent(input$load_default_multi, {
     sig_genes <- rownames(stat()[stat()$fdr.overall < 0.05, ])
     updateTextAreaInput(
@@ -1623,10 +1886,10 @@ dataVisualization_server <- function(input, output, session) {
     tryCatch({
       result_summary <- data.frame(
         Gene = character(),
-        Minus = integer(),
-        NS = integer(),
-        Plus = integer(),
-        NA_Count = integer(),
+        Number_of_Minus_Bins = integer(),
+        Number_of_NonSig_Bins = integer(),
+        Number_of_Plus_Bins = integer(),
+        Number_of_NA_Bins = integer(),
         stringsAsFactors = FALSE
       )
       for (i in seq_along(gene_list)) {
@@ -1765,25 +2028,43 @@ dataVisualization_server <- function(input, output, session) {
             results$mean_1[i] <- mean(expr_1, na.rm = TRUE)
           }
           valid_p_indices <- which(!is.na(results$p_value))
-          if (length(valid_p_indices) > 0) {
+          
+          if(input$multi_using_p_adj == "pvalue"){
+            for (i in 1:n_bins) {
+              if (is.na(results$p_value[i])) {
+                results$significance[i] <- "NA"
+              } else {
+                if (results$p_value[i] < 0.001) {
+                  results$significance[i] <- "***"
+                } else if (results$p_value[i] < 0.01) {
+                  results$significance[i] <- "**"
+                } else if (results$p_value[i] < 0.05) {
+                  results$significance[i] <- "*"
+                } else {
+                  results$significance[i] <- "ns"
+                }
+              }
+            }
+          }else{if (length(valid_p_indices) > 0) {
             results$p_adjusted <- NA
             results$p_adjusted[valid_p_indices] <- p.adjust(results$p_value[valid_p_indices], method = "fdr")
           } else {
             results$p_adjusted <- NA
           }
-          
-          for (i in 1:n_bins) {
-            if (is.na(results$p_adjusted[i])) {
-              results$significance[i] <- "NA"
-            } else {
-              if (results$p_adjusted[i] < 0.001) {
-                results$significance[i] <- "***"
-              } else if (results$p_adjusted[i] < 0.01) {
-                results$significance[i] <- "**"
-              } else if (results$p_adjusted[i] < 0.05) {
-                results$significance[i] <- "*"
+            
+            for (i in 1:n_bins) {
+              if (is.na(results$p_adjusted[i])) {
+                results$significance[i] <- "NA"
               } else {
-                results$significance[i] <- "ns"
+                if (results$p_adjusted[i] < 0.001) {
+                  results$significance[i] <- "***"
+                } else if (results$p_adjusted[i] < 0.01) {
+                  results$significance[i] <- "**"
+                } else if (results$p_adjusted[i] < 0.05) {
+                  results$significance[i] <- "*"
+                } else {
+                  results$significance[i] <- "ns"
+                }
               }
             }
           }
@@ -1804,10 +2085,10 @@ dataVisualization_server <- function(input, output, session) {
           direction_counts <- table(factor(results$direction, levels = c("-", "ns", "+", "NA")))
           result_summary <- rbind(result_summary, data.frame(
             Gene = gene,
-            Minus = as.integer(direction_counts["-"]),
-            NS = as.integer(direction_counts["ns"]),
-            Plus = as.integer(direction_counts["+"]),
-            NA_Count = as.integer(direction_counts["NA"]),
+            Number_of_Minus_Bins = as.integer(direction_counts["-"]),
+            Number_of_NonSig_Bins = as.integer(direction_counts["ns"]),
+            Number_of_Plus_Bins = as.integer(direction_counts["+"]),
+            Number_of_NA_Bins = as.integer(direction_counts["NA"]),
             stringsAsFactors = FALSE
           ))
           p2 <- ggplot(results, aes(x = median_pseudotime, y = mean_1 - mean_0)) +
@@ -1973,7 +2254,7 @@ dataVisualization_server <- function(input, output, session) {
       for (col in stat_colnames) {
         result_summary[[col]] <- NA 
       }
-    
+      
       valid_matches <- !is.na(gene_indices)
       if (any(valid_matches)) {
         for (col in stat_colnames) {
@@ -1981,8 +2262,56 @@ dataVisualization_server <- function(input, output, session) {
         }
       }
       
-      write.xlsx(result_summary, file.path(combined_dir, "gene_direction_summary.xlsx"))
-        progress_log <- paste0(progress_log, Sys.time(), ": DONE! Processed ", length(gene_list), " genes.\n The window will automatically close after 3 seconds.")
+      description_df <- data.frame(
+        Colname = c(
+          "Number_of_Minus_Bins",
+          "Number_of_NonSig_Bins", 
+          "Number_of_Plus_Bins",
+          "Number_of_NA_Bins",
+          "pval.overall",
+          "z.overall",
+          "log.pval.overall",
+          "fdr.meanDiff", 
+          "pval.meanDiff",
+          "z.meanDiff",
+          "log.pval.meanDiff",
+          "fdr.trendDiff",
+          "pval.trendDiff", 
+          "z.trendDiff",
+          "log.pval.trendDiff"
+        ),
+        Description = c(
+          "Number of bins where test.variable=1 mean is significantly less than test.variable=0 mean (p < 0.05)",
+          "Number of bins with no significant difference between conditions (p ≥ 0.05)",
+          "Number of bins where test.variable=1 mean is significantly greater than test.variable=0 mean (p < 0.05)", 
+          "Number of bins where statistical test could not be performed (missing data or model convergence issues)",
+          "Raw p-value from combined test considering both meanDiff and trendDiff effects",
+          "Z-score from combined test quantifying standardized deviation from null distribution",
+          "Log-transformed p-value from combined test using kernel density estimation",
+          "False discovery rate adjusted p-values for mean difference test (Benjamini-Hochberg correction) [Recommend]",
+          "Raw p-value indicating statistical significance of absolute expression differences between conditions (vertical curve shifts)",
+          "Z-score for mean difference test quantifying standardized deviation from null distribution",
+          "Log-transformed p-value for mean difference test using kernel density estimation",
+          "False discovery rate adjusted p-values for trend difference test (Benjamini-Hochberg correction) [Recommend]",
+          "Raw p-value indicating statistical significance of pattern/shape differences between conditions (slope changes)",
+          "Z-score for trend difference test quantifying standardized deviation from null distribution", 
+          "Log-transformed p-value for trend difference test using kernel density estimation"
+        ),
+        stringsAsFactors = FALSE
+      )
+      
+      wb <- createWorkbook()
+      
+      addWorksheet(wb, "Data")
+      writeData(wb, sheet = "Data", result_summary, rowNames = FALSE)
+      
+      addWorksheet(wb, "Description_of_Column")
+      writeData(wb, sheet = "Description_of_Column", description_df, rowNames = FALSE)
+      
+      setColWidths(wb, sheet = "Description_of_Column", cols = 1, widths = 20)  
+      setColWidths(wb, sheet = "Description_of_Column", cols = 2, widths = 80)  
+      saveWorkbook(wb, file.path(combined_dir, "gene_direction_summary.xlsx"), overwrite = TRUE)
+      progress_log <- paste0(progress_log, Sys.time(), ": DONE! Processed ", length(gene_list), " genes.\n The window will automatically close after 3 seconds.")
       
       
       shinyjs::html(id = "progress-log", html = progress_log, add = FALSE)
@@ -1999,24 +2328,7 @@ dataVisualization_server <- function(input, output, session) {
     })
   })
   
-  
-  output$download_tab_content <- renderUI({
-    fluidRow(
-      column(12,
-        div(
-          style = "color: red; font-weight: bold; margin-bottom: 15px;",
-          icon("exclamation-triangle"), 
-          "If you have not generated any visualization files yet. Please use \"HEATMAP\", \"SINGLE GENE ANALYSIS\" or \"MULTI GENE ANALYSIS\" to generate them first."
-        ),
-        downloadButton(
-          "download_visualization", 
-          label = "Download All Visualization Files",
-          style = "width: 100%;"
-        )
-    )
-    )
-  })
-  
+  #DOWNLOAD UI
   output$download_visualization <- downloadHandler(
     filename = function() {
       paste0("visualization_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".zip")
