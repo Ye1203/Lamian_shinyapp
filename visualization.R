@@ -1577,7 +1577,7 @@ dataVisualization_server <- function(input, output, session) {
     # Create base plot
     p <- ggplot(plot_df, aes(x = pseudotime, y = expr)) +
       theme_classic() +
-      labs(x = "Pseudotime", y = "Expression Level", legend) + 
+      labs(x = "Pseudotime", y = "Expression Level") + 
       theme(
         legend.title = element_text(size = 10),
         legend.text = element_text(size = 8),

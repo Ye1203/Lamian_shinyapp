@@ -1,4 +1,6 @@
 options(warn = -1)
+# Change Here to Lamian Folder
+devtools::load_all("Path/to/Lamian/folder")
 library(shiny)
 library(shinyjs)
 library(DT)
@@ -22,7 +24,6 @@ library(openxlsx)
 library(gridExtra)
 library(shinyWidgets)
 
-devtools::load_all("/projectnb/wax-es/00_shinyapp/Lamian/renv/library/linux-almalinux-8.10/R-4.4/x86_64-pc-linux-gnu/Lamian")
 source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/step1.R")
 source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/step3.R")
 source("/projectnb/wax-es/00_shinyapp/Lamian/lamian/step4.R")

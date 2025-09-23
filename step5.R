@@ -36,7 +36,8 @@ step5 <- function(data, sce, selected_lineage, output_file_path, design, maximum
   lamian_r_code <- sprintf(
     'options(warn=-1) # suppress warning messages
 library(devtools)
-devtools::load_all("/projectnb/wax-es/00_shinyapp/Lamian/renv/library/linux-almalinux-8.10/R-4.4/x86_64-pc-linux-gnu/Lamian")
+# Change Here to Lamian Folder
+devtools::load_all("Path/to/Lamian/folder")
 
 library(circlize)
 library(RColorBrewer)
