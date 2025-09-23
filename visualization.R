@@ -208,46 +208,46 @@ dataVisualization_server <- function(input, output, session) {
                    tags$div(
                      id = "single_gene_analysis_desc", class = "description-panel",
                      style = "display: none;",
-                     h3("Single Gene Analysis Description"),
-                     h4("Analyze specific genes.", style = "color: grey;"),
-                     hr(),
-                     h4("1. Select appropriate dimensions"),
-                     p("Since harmony and PCA may have mixing of different biological categories under specific dimensions during visualization, before selecting genes for analysis, you can use \"X Axis\" and \"Y Axis\" to select dimensions where the biological categories in the Cell Cluster plot are separated and pseudotime is continuous."),
+                       h3("Single Gene Analysis Description"),
+                       h4("Analyze specific genes.", style = "color: grey;"),
+                       hr(),
+                       h4("1. Select appropriate dimensions"),
+                       p("Since harmony and PCA may have mixing of different biological categories under specific dimensions during visualization, before selecting genes for analysis, you can use \"X Axis\" and \"Y Axis\" to select dimensions where the biological categories in the Cell Cluster plot are separated and pseudotime is continuous."),
                      hr(),  
                      h4("2. Select genes"),
-                     p("a. Click ",
-                       tags$span(style = "color:#5CB85C; font-weight:bold", "\"Select Gene\""),
-                       " to enter the gene selection page."
-                     ),
-                     p("b. In the selection page, you can sort ascending or descending and use the search function. Scroll horizontally to view all column names."),
-                     p("c. Click the row of the gene you want to analyze, then click ",
-                       tags$span(style = "color:#337AB7; font-weight:bold", "\"Confirm\""),
-                       " to confirm the gene."
-                     ),
-                     h4("View cell cluster and pseudotime distributions"),
-                     p("Besides the Cell Cluster plot and Pseudotime plot shown automatically at the start, you can also click ",
-                       tags$span(style = "color:#929292; font-weight:bold", "\"Reset\""),
-                       " after selecting genes to re-display these two plots."
-                     ),
+                       p("a. Click ",
+                         tags$span(style = "color:#5CB85C; font-weight:bold", "\"Select Gene\""),
+                         " to enter the gene selection page."
+                       ),
+                       p("b. In the selection page, you can sort ascending or descending and use the search function. Scroll horizontally to view all column names."),
+                       p("c. Click the row of the gene you want to analyze, then click ",
+                         tags$span(style = "color:#337AB7; font-weight:bold", "\"Confirm\""),
+                         " to confirm the gene."
+                       ),
+                       h4("View cell cluster and pseudotime distributions"),
+                       p("Besides the Cell Cluster plot and Pseudotime plot shown automatically at the start, you can also click ",
+                         tags$span(style = "color:#929292; font-weight:bold", "\"Reset\""),
+                         " after selecting genes to re-display these two plots."
+                       ),
                      hr(),
-                     h4("3. Different plots"),
-                     p("When no gene is selected, two plots are displayed: the Cell Cluster plot and the Pseudotime plot, which are used to observe classifications of different biological cell types and pseudotime distributions."),
-                     br(),
-                     p("After gene selection, four plots are shown: population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot."),
-                     p("Input \"Number of pseudotime's bin\" for bin pseudotime t-test plot. The program applies a mixed model to each bin based on the number of bins to calculate the final p-value, followed by FDR correction. If the FDR is greater than 0.05, it is considered not significant. Otherwise, if the mean of test.variable=1 is greater than test.variable=0, it is marked as \"+\"; otherwise, it is marked as \"-\"."),
-                     p("Select \"Statistical significance\" to choose whether to perform FDR correction."),
-                     p("Click \"Find bins with max non-significant\" then select the search range and start searching to find bins with max non-siginifcant counts."),
-                     p("Click \"Show individual data points (Plot3)\" to display cell points in the pseudotime variation plot of different Samples."),
-                     p("Click \"Show error bar (Plot3)\" to show the error bar of Plot3."),
-                     p("Click \"Include zero-expression cells (Plot4)\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
-                     p("Uncheck \"Sample included\" to remove the corresponding sample from the pseudotime variation plot, facilitating observation of relationships among other samples."),
+                       h4("3. Different plots"),
+                       p("When no gene is selected, two plots are displayed: the Cell Cluster plot and the Pseudotime plot, which are used to observe classifications of different biological cell types and pseudotime distributions."),
+                       br(),
+                       p("After gene selection, four plots are shown: population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot."),
+                       p("Input \"Number of pseudotime's bin\" for bin pseudotime t-test plot. The program applies a mixed model to each bin based on the number of bins to calculate the final p-value, followed by FDR correction. If the FDR is greater than 0.05, it is considered not significant. Otherwise, if the mean of test.variable=1 is greater than test.variable=0, it is marked as \"+\"; otherwise, it is marked as \"-\"."),
+                       p("Select \"Statistical significance\" to choose whether to perform FDR correction."),
+                       p("Click \"Find bins with max non-significant\" then select the search range and start searching to find bins with max non-siginifcant counts."),
+                       p("Click \"Show individual data points (Plot3)\" to display cell points in the pseudotime variation plot of different Samples."),
+                       p("Click \"Show error bar (Plot3)\" to show the error bar of Plot3."),
+                       p("Click \"Include zero-expression cells (Plot4)\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
+                       p("Uncheck \"Sample included\" to remove the corresponding sample from the pseudotime variation plot, facilitating observation of relationships among other samples."),
                      hr(),  
                      h4("4. Save images"),
-                     p("At any time (whether genes are selected or not), you can click ",
-                       tags$span(style = "color:#337AB7; font-weight:bold", "\"Save Plot to result folder\""),
-                       " to save displayed plots to the Result folder at visualization_YYYYmmddHHMM/HEATMAP. If no gene is selected, the two plots will be saved in the reduction folder; otherwise, they will be saved in the folder corresponding to the gene name. Meanwhile, a COMBINED folder will be generated including gene information and all four plots."
-                     )
-                   ),
+                       p("At any time (whether genes are selected or not), you can click ",
+                         tags$span(style = "color:#337AB7; font-weight:bold", "\"Save Plot to result folder\""),
+                         " to save displayed plots to the Result folder at visualization_YYYYmmddHHMM/HEATMAP. If no gene is selected, the two plots will be saved in the reduction folder; otherwise, they will be saved in the folder corresponding to the gene name. Meanwhile, a COMBINED folder will be generated including gene information and all four plots."
+                       )
+                     ),
                    uiOutput("gene_ui")
           ),
           
@@ -267,16 +267,16 @@ dataVisualization_server <- function(input, output, session) {
                      p("b. Click \"",
                        tags$span(style = "color:#C95C54; font-weight:bold", "Clear All"),
                        "\" to clear all genes."),
-                     hr(),
-                     h4("2. Option for visualization"),
-                     p("Click \"Show individual data points\" to display cell points in the pseudotime variation plot of different Samples."),
-                     p("Click \"Include zero-expression cells\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
-                     hr(),
-                     h4("3. Start Analysis"),
-                     p("Click \"",
-                       tags$span(style = "color:#4678B2; font-weight:bold", "Start Analysis"),
-                       "\" to start analysis. All the gene file will be save to the Result folder at visualization_YYYYmmddHHMM/HEATMAP/COMBINED, included gene name, information, population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot. There will also be a \"gene_direction_summary.xlsx\" file which includes the count of bin pseudotime (Minus, NS, Plus, NA)")
-                   ),
+                    hr(),
+                    h4("2. Option for visualization"),
+                    p("Click \"Show individual data points\" to display cell points in the pseudotime variation plot of different Samples."),
+                    p("Click \"Include zero-expression cells\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
+                   hr(),
+                   h4("3. Start Analysis"),
+                   p("Click \"",
+                     tags$span(style = "color:#4678B2; font-weight:bold", "Start Analysis"),
+                     "\" to start analysis. All the gene file will be save to the Result folder at visualization_YYYYmmddHHMM/HEATMAP/COMBINED, included gene name, information, population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot. There will also be a \"gene_direction_summary.xlsx\" file which includes the count of bin pseudotime (Minus, NS, Plus, NA)")
+                    ),
                    uiOutput("multi_gene_ui")
           ),
           
@@ -298,16 +298,16 @@ dataVisualization_server <- function(input, output, session) {
   })
   
   observeEvent(input$navlist, {
-    shinyjs::hide(".description-panel")
-    
-    desc_id <- switch(input$navlist,
-                      "HEATMAP" = "heatmap_desc",
-                      "SINGLE GENE ANALYSIS" = "single_gene_analysis_desc",
-                      "MULTI GENE ANALYSIS" = "multi_gene_analysis_desc",
-                      "DOWNLOAD VISUALIZATION" = "download_visualization_desc"
-    )
-    shinyjs::show(desc_id)
-  }, ignoreInit = FALSE)
+  shinyjs::hide(".description-panel")
+  
+  desc_id <- switch(input$navlist,
+    "HEATMAP" = "heatmap_desc",
+    "SINGLE GENE ANALYSIS" = "single_gene_analysis_desc",
+    "MULTI GENE ANALYSIS" = "multi_gene_analysis_desc",
+    "DOWNLOAD VISUALIZATION" = "download_visualization_desc"
+  )
+  shinyjs::show(desc_id)
+}, ignoreInit = FALSE)
   
   output$download_stat <- downloadHandler(
     filename = function() {"Lamian_statistical_result.xlsx"},
@@ -395,9 +395,9 @@ dataVisualization_server <- function(input, output, session) {
             placeholder = "Paste genes here:\nGene_A\nGene_B\nGene_C"
           ),
           actionButton("load_default", "fdr.overall < 0.05", 
-                       class = "btn-primary", width = "100%"),
+                                   class = "btn-primary", width = "100%"),
           actionButton("clear_genes", "Clear All", 
-                       class = "btn-danger", width = "100%"),
+                                   class = "btn-danger", width = "100%"),
           
           hr(),
           h4("Heatmap Parameters", class = "text-info"),
@@ -442,7 +442,7 @@ dataVisualization_server <- function(input, output, session) {
           
           actionButton("draw_plot", "Draw Plot", 
                        class = "btn-success", width = "100%"),
-          
+
           actionButton("save_heatmap_plot", "Save Plot", 
                        class = "btn-primary", width = "100%", disabled = TRUE),
           
@@ -456,7 +456,7 @@ dataVisualization_server <- function(input, output, session) {
             max = 1000,
             step = 1
           ),
-          
+         
           actionButton("save_heatmap_data", "Save Data", 
                        class = "btn-info", width = "100%", disabled = TRUE)
         )
@@ -658,7 +658,7 @@ dataVisualization_server <- function(input, output, session) {
     heatmap_plot(result$plot)
     heatmap_data(result$df)
     heatmap_name(result$names)
-    
+  
     if(!is.null(result$plot)) {
       output$heatmap_display <- renderPlot({
         result$plot
@@ -834,7 +834,7 @@ dataVisualization_server <- function(input, output, session) {
         extract_samples("scale1_"),
         extract_samples("raw0_"),
         extract_samples("raw1_") 
-        
+
       )
       
       if (is.null(result_visulization_folder())) {
@@ -866,7 +866,7 @@ dataVisualization_server <- function(input, output, session) {
     })
   })
   
-  
+
   #GENE UI
   observeEvent(input$select_gene, {
     req(xde_result())
@@ -1767,7 +1767,7 @@ dataVisualization_server <- function(input, output, session) {
         pdf(file.path(combined_dir, paste0(gene_analysis_selected(), ".pdf")), width = 20, height = 12)
         
         grid.newpage()
-        
+
         pushViewport(viewport(x = 0.05, y = 0.98, width = 0.15, height = 0.95, just = c("left","top")))
         
         gene_stats <- xde_result()$statistics[gene_analysis_selected(), , drop = FALSE]
@@ -1790,7 +1790,7 @@ dataVisualization_server <- function(input, output, session) {
         )
         
         popViewport() 
-        
+
         
         # p1
         pushViewport(viewport(x = 0.18, y = 0.98, width = 0.24, height = 0.45, just = c("left","top")))
@@ -2254,7 +2254,7 @@ dataVisualization_server <- function(input, output, session) {
       for (col in stat_colnames) {
         result_summary[[col]] <- NA 
       }
-      
+    
       valid_matches <- !is.na(gene_indices)
       if (any(valid_matches)) {
         for (col in stat_colnames) {
@@ -2312,7 +2312,7 @@ dataVisualization_server <- function(input, output, session) {
       setColWidths(wb, sheet = "Description_of_Column", cols = 2, widths = 80)  
       saveWorkbook(wb, file.path(combined_dir, "gene_direction_summary.xlsx"), overwrite = TRUE)
       progress_log <- paste0(progress_log, Sys.time(), ": DONE! Processed ", length(gene_list), " genes.\n The window will automatically close after 3 seconds.")
-      
+
       
       shinyjs::html(id = "progress-log", html = progress_log, add = FALSE)
       shinyjs::runjs("var elem = document.getElementById('progress-log'); elem.scrollTop = elem.scrollHeight;")
