@@ -8,8 +8,6 @@ visualization_read <- function(result_folder){
   stat <- stat[order(stat$fdr.overall), ]
   xde_result$populationFit <-
     getPopulationFit(xde_result, gene = rownames(stat), type = 'variable')
-  xde_result$covariateGroupDiff <-
-    getCovariateGroupDiff(testobj = xde_result, gene = rownames(stat))
   remove("expr")
   return(list(xde_result = xde_result,
               stat = stat,

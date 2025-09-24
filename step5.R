@@ -1,4 +1,4 @@
-step5 <- function(data, sce, selected_lineage, output_file_path, design, maximumknotallowed, permuiter, task_duration, project_name, email_address = NA){
+step5 <- function(data, sce, selected_lineage, output_file_path, design, maximumknotallowed, permuiter, task_duration, project_name, email_address = NA, path_to_lamian){
   if (!startsWith(output_file_path, "/")) {
     output_file_path <- paste0("/", output_file_path)
   }
@@ -37,13 +37,13 @@ step5 <- function(data, sce, selected_lineage, output_file_path, design, maximum
     'options(warn=-1) # suppress warning messages
 library(devtools)
 # Change Here to Lamian Folder
-devtools::load_all("Path/to/Lamian/folder")
+devtools::load_all("%s")
 
 library(circlize)
 library(RColorBrewer)
 library(dplyr)
 library(openxlsx)
-source("/projectnb/wax-es/00_shinyapp/Lamian/renv/activate.R")
+#source("renv/activate.R")
 
 send_email <- function(to, subject, body) {
   f <- tempfile(fileext = ".txt")
@@ -134,6 +134,7 @@ res <- tryCatch({
   list(success = FALSE, error = err_msg)
 })
 ',
+path_to_lamian,
 output_file_path,
 email_address,
 maximumknotallowed,
