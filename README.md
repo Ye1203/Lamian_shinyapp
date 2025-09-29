@@ -1,6 +1,9 @@
 # Lamian Helper Package
 
-This package provides a convenient interface to use **Lamian**, a tool designed to compare expression changes over pseudotime across different conditions. For detailed information on Lamian, please refer to Professor Wenpin Hou's original repository:  
+This shinyapp provides a convenient interface to use **Lamian**, a tool designed to compare expression changes over pseudotime across different conditions. For detailed information on Lamian, please refer to Professor Wenpin Hou's original repository:  
+
+This shinyapp is designed for people run on Boston Univeristy's SCC using qsub. If you want to run on other server or PC, you need change the setting of memory limit or using lamian.R directly file after **Data Preprocessing** section.
+
 https://github.com/Winnie09/Lamian
 
 ---
