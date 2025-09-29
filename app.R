@@ -28,10 +28,10 @@ library(openxlsx)
 library(gridExtra)
 library(shinyWidgets)
 
-devtools::load_all(file.path(path_to_shiny, "shiny", "Lamian"))
+devtools::load_all(file.path(path_to_shiny, "Lamian"))
 
 r_files <- list("step1.R", "step3.R", "step4.R", "step5.R", "visualization.R", "visualization_read.R", "draw_heatmap.R")
-r_files <- file.path(path_to_shiny,r_files)
+r_files <- file.path(path_to_shiny, "shiny", r_files)
 for (file in r_files) {
   source(file)
 }
