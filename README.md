@@ -1,7 +1,7 @@
 # Lamian Helper Package
 
 This package provides a convenient interface to use **Lamian**, a tool designed to compare expression changes over pseudotime across different conditions. For detailed information on Lamian, please refer to Professor Wenpin Hou's original repository:  
-https://github.com/Winnie09/Lamian/tree/master
+https://github.com/Winnie09/Lamian
 
 ---
 
@@ -21,20 +21,12 @@ Starting from a Seurat object containing **sample** and **gene cluster (meta.dat
 
 ---
 
-## Job Submission
-
-- Tasks are submitted via `qsub` with **28 CPU cores** allocated.  
-- Integrated **email notification** functionality for job status updates.
-
----
-
 ## Important Fixes & Modifications
 
 We have incorporated fixes and improvements in the Lamian codebase to ensure robustness and usability:
 
-1. **Avoiding no-solution problems** during trajectory fitting  
-2. **Fixing matrix non-invertibility issues**  
-3. **Adjusting some default parameters and visualization settings** for better performance and clarity  
+1. **Fixing matrix non-invertibility issues**  
+2. **Adjusting some default parameters and visualization settings** for better performance and clarity  
 
 These fixes are essential to prevent errors during analysis.
 
@@ -42,11 +34,37 @@ These fixes are essential to prevent errors during analysis.
 
 ## Installation
 
-The corrected version of Lamian and all necessary code reside in the `Lamian` folder of this repository. To install, use `devtools`:  
+Follow these steps to set up the Lamian Helper Package in your R environment:
 
-```r
-devtools::install_local("path_to_this_repo/Lamian")
-```
+1.  **Create a new R project and activate the `renv` environment.**
+    *(This step is typically done within your R IDE, such as RStudio.)*
+
+2.  **Clone the repository into your project directory.**
+    Open a terminal in your project's root directory and run:
+    ```bash
+    git clone git@github.com:Ye1203/Lamian_shinyapp.git
+    ```
+
+3.  **Restore the package environment using the provided `renv.lock` file.**
+    In your R console, run the following commands:
+    ```r
+    # Install the 'renv' package if you haven't already
+    if (!require("renv")) install.packages("renv")
+    
+    # Initialize and restore the project environment from the lockfile
+    renv::init()
+    renv::restore()
+    ```
+
+4.  **Configure the application path.**
+    In the `app.R` file, change the `path_to_shiny` variable to the correct path where the `Lamian_shinyapp` folder are located.
+
+5.  **Launch the Shiny application.**
+    In your R console, run:
+    ```r
+    # Run the application
+    shiny::runApp("Lamian_shinyapp")
+    ```
 
 ---
 
