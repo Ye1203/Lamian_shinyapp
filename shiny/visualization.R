@@ -145,6 +145,10 @@ dataVisualization_server <- function(input, output, session) {
       )
     } else {
       tagList(
+        tags$h5("1. Use \"HETAMAP\" to draw heatmap and copy the gene of the gene pattern you are interested in.", style = "color:grey;"),
+        tags$h5("2. Put the gene of interest into \"MULTI GENE ANALYSIS\" and save all the results", style = "color:grey;"),
+        tags$h5("3. Use \"DOWNLOAD VISUALIZATION\" download all results to local.", style = "color:grey;"),
+        tags$h5("4. For genes you want to further distribute use \"SINGLE GENE ANALYSIS\" and then use \"DOWNLOAD VISUALIZATION\" download all results to local.", style = "color:grey;"),
         navlistPanel(
           id = "navlist",
           widths = c(2, 10),
@@ -203,6 +207,40 @@ dataVisualization_server <- function(input, output, session) {
                    uiOutput("heatmap_ui")
           ),
           
+          
+          # MULTI GENE ANALYSIS Tab
+          tabPanel("MULTI GENE ANALYSIS", 
+                   tags$div(
+                     id = "multi_gene_analysis_desc", class = "description-panel",
+                     style = "display: none;",
+                     h3("Multi Gene Analysis Description"),
+                     h4("Directly save the visualization analysis results of specified genes.", style = "color: grey;"),
+                     hr(),
+                     h4("1. Enter the genes list"),
+                     p("The default gene list is for genes with an fdr.overall < 0.05. You can also enter your own gene list, separated by line breaks (you can directly copy and paste multiple rows of gene names from the Excel file downloaded using \"Download statistical results\")."),
+                     p("a. Click \"",
+                       tags$span(style = "color:#4678B2; font-weight:bold", "fdr.overall < 0.05"),
+                       "\" to use the default list of genes with an fdr.overall value < 0.05."),
+                     p("b. Click \"",
+                       tags$span(style = "color:#C95C54; font-weight:bold", "Clear All"),
+                       "\" to clear all genes."),
+                     hr(),
+                     h4("2. Option for visualization"),
+                     p("Input \"Number of pseudotime's bin\" for bin pseudotime t-test plot."),
+                     p("Select \"Statistical significance\" to choose whether to perform FDR correction for bin pseudotime t-test plot."),
+                     p("Click \"Find bins with max non-significant\" then select the search range and start searching to find bins with max non-siginifcant counts."),
+                     p("Click \"Show individual data points\" to display cell points in the pseudotime variation plot of different Samples."),
+                     p("Click \"Show error bar\" to show the error bar of pseudotime variation of different Samples plot."),
+                     p("Click \"Include zero-expression cells\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
+                     hr(),
+                     h4("3. Start Analysis"),
+                     p("Click \"",
+                       tags$span(style = "color:#4678B2; font-weight:bold", "Start Analysis"),
+                       "\" to start analysis. All the gene file will be save to the Result folder at visualization_YYYYmmddHHMM/HEATMAP/COMBINED, included gene name, information, population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot. There will also be a \"gene_direction_summary.xlsx\" file which includes the count of bin pseudotime (Minus, NS, Plus, NA)")
+                   ),
+                   uiOutput("multi_gene_ui")
+          ),
+          
           # SINGLE GENE ANALYSIS Tab
           tabPanel("SINGLE GENE ANALYSIS", 
                    tags$div(
@@ -251,38 +289,6 @@ dataVisualization_server <- function(input, output, session) {
                    uiOutput("gene_ui")
           ),
           
-          # MULTI GENE ANALYSIS Tab
-          tabPanel("MULTI GENE ANALYSIS", 
-                   tags$div(
-                     id = "multi_gene_analysis_desc", class = "description-panel",
-                     style = "display: none;",
-                     h3("Multi Gene Analysis Description"),
-                     h4("Directly save the visualization analysis results of specified genes.", style = "color: grey;"),
-                     hr(),
-                     h4("1. Enter the genes list"),
-                     p("The default gene list is for genes with an fdr.overall < 0.05. You can also enter your own gene list, separated by line breaks (you can directly copy and paste multiple rows of gene names from the Excel file downloaded using \"Download statistical results\")."),
-                     p("a. Click \"",
-                       tags$span(style = "color:#4678B2; font-weight:bold", "fdr.overall < 0.05"),
-                       "\" to use the default list of genes with an fdr.overall value < 0.05."),
-                     p("b. Click \"",
-                       tags$span(style = "color:#C95C54; font-weight:bold", "Clear All"),
-                       "\" to clear all genes."),
-                    hr(),
-                    h4("2. Option for visualization"),
-                    p("Input \"Number of pseudotime's bin\" for bin pseudotime t-test plot."),
-                    p("Select \"Statistical significance\" to choose whether to perform FDR correction for bin pseudotime t-test plot."),
-                    p("Click \"Find bins with max non-significant\" then select the search range and start searching to find bins with max non-siginifcant counts."),
-                    p("Click \"Show individual data points\" to display cell points in the pseudotime variation plot of different Samples."),
-                    p("Click \"Show error bar\" to show the error bar of pseudotime variation of different Samples plot."),
-                    p("Click \"Include zero-expression cells\" to add cells with zero expression in the distribution plot of different Samples in the dimensionality reduction space."),
-                    hr(),
-                   h4("3. Start Analysis"),
-                   p("Click \"",
-                     tags$span(style = "color:#4678B2; font-weight:bold", "Start Analysis"),
-                     "\" to start analysis. All the gene file will be save to the Result folder at visualization_YYYYmmddHHMM/HEATMAP/COMBINED, included gene name, information, population plot, bin pseudotime t-test plot, pseudotime variation of different Samples plot, and distribution of different Samples in the dimensionality reduction space plot. There will also be a \"gene_direction_summary.xlsx\" file which includes the count of bin pseudotime (Minus, NS, Plus, NA)")
-                    ),
-                   uiOutput("multi_gene_ui")
-          ),
           
           # DOWNLOAD VISUALIZATION Tab
           tabPanel("DOWNLOAD VISUALIZATION", 
@@ -306,8 +312,8 @@ dataVisualization_server <- function(input, output, session) {
   
   desc_id <- switch(input$navlist,
     "HEATMAP" = "heatmap_desc",
-    "SINGLE GENE ANALYSIS" = "single_gene_analysis_desc",
     "MULTI GENE ANALYSIS" = "multi_gene_analysis_desc",
+    "SINGLE GENE ANALYSIS" = "single_gene_analysis_desc",
     "DOWNLOAD VISUALIZATION" = "download_visualization_desc"
   )
   shinyjs::show(desc_id)
@@ -446,6 +452,8 @@ dataVisualization_server <- function(input, output, session) {
           
           actionButton("draw_plot", "Draw Plot", 
                        class = "btn-success", width = "100%"),
+          
+          uiOutput("gene_tools_ui"),
 
           actionButton("save_heatmap_plot", "Save Plot", 
                        class = "btn-primary", width = "100%", disabled = TRUE),
@@ -684,6 +692,48 @@ dataVisualization_server <- function(input, output, session) {
         easyClose = FALSE
       ))
     }
+    
+    output$gene_tools_ui <- renderUI({
+      req(input$cluster_number)  
+      tagList(
+        fluidRow(
+          column(
+            width = 3,
+            tags$span("Cluster:", style = "line-height: 35px; font-weight: bold;")
+          ),
+          column(
+            width = 9,
+            selectInput("cluster_select_copy", NULL,
+                        choices = seq_len(input$cluster_number),
+                        width = "100%",
+                        selected = 1)
+          )
+        ),
+        fluidRow(
+          column(
+            width = 12,
+            actionButton("copy_gene", "Copy Gene to Clipboard", 
+                         class = "btn-warning", width = "100%")
+          )
+        )
+      )
+    })
+  })
+  
+  observeEvent(input$copy_gene, {
+    df <- heatmap_data() 
+    req(df, input$cluster_select_copy)
+    
+    selected_genes <- df$GENE[df$Cluster_Number == input$cluster_select_copy]
+    
+    if (length(selected_genes) > 0) {
+      gene_text <- paste(selected_genes, collapse = "\n")
+      runjs(sprintf("navigator.clipboard.writeText(`%s`);", gene_text))
+      showNotification(paste("Copied", length(selected_genes), "genes to clipboard."),
+                       type = "message")
+    } else {
+      showNotification("No genes found for this cluster.", type = "warning")
+    }
   })
   
   observeEvent(input$save_heatmap_plot, {
@@ -803,6 +853,7 @@ dataVisualization_server <- function(input, output, session) {
       showNotification(paste("Failed to save plot with gene names:", e$message), type = "error")
     })
   })
+  
   
   observeEvent(input$save_heatmap_data, {
     req(heatmap_data(), input$result_folder, input$pseudotime_samples)
@@ -1313,7 +1364,7 @@ dataVisualization_server <- function(input, output, session) {
         y = colnames(rd)[2],  
         title = "Cell Clusters"
       ) +
-      theme_minimal() +
+      theme_light() +
       theme(
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 14),
@@ -1342,7 +1393,7 @@ dataVisualization_server <- function(input, output, session) {
       geom_point(size = 0.5) +
       scale_color_viridis_c() +
       ggtitle("Pseudotime") +
-      theme_minimal()+
+      theme_light()+
       theme(legend.title = element_text(size = 14),
             legend.text = element_text(size = 14),
             axis.title = element_text(size = 16))
@@ -1508,10 +1559,9 @@ dataVisualization_server <- function(input, output, session) {
                          drop = FALSE) +
       ylim(-max(abs(results$mean_1 - results$mean_0), na.rm = TRUE) - 0.2, 
            max(abs(results$mean_1 - results$mean_0), na.rm = TRUE) + 0.2) +
-      labs(title = "",
-           x = "Pseudotime",
+      labs(x = "Pseudotime",
            y = "Expression Difference") +
-      theme_minimal() +
+      theme_light() +
       guides(
         shape = guide_legend(override.aes = list(
           shape = c(45, 1, 43, 4),
@@ -1580,7 +1630,7 @@ dataVisualization_server <- function(input, output, session) {
     
     # Create base plot
     p <- ggplot(plot_df, aes(x = pseudotime, y = expr)) +
-      theme_classic() +
+      theme_light() +
       labs(x = "Pseudotime", y = "Expression Level") + 
       theme(
         legend.title = element_text(size = 10),
@@ -1687,7 +1737,7 @@ dataVisualization_server <- function(input, output, session) {
       scale_color_viridis_c() +
       labs(x = colnames(reduced_dim)[1], 
            y = colnames(reduced_dim)[2]) +
-      theme_minimal() +
+      theme_light() +
       facet_wrap(~ Sample, nrow = 1, drop = FALSE) +  
       {if (included_zero() && length(setdiff(all_samples, unique(plot_df$Sample)))) {
         geom_text(
@@ -2108,10 +2158,9 @@ dataVisualization_server <- function(input, output, session) {
                                drop = FALSE) +
             ylim(-max(abs(results$mean_1 - results$mean_0), na.rm = TRUE) - 0.2, 
                  max(abs(results$mean_1 - results$mean_0), na.rm = TRUE) + 0.2) +
-            labs(title = "",
-                 x = "Pseudotime",
+            labs(x = "Pseudotime",
                  y = "Expression Difference") +
-            theme_minimal() +
+            theme_light() +
             guides(
               shape = guide_legend(override.aes = list(
                 shape = c(45, 1, 43, 4),
@@ -2132,7 +2181,7 @@ dataVisualization_server <- function(input, output, session) {
           popViewport()
           
           # Pseudotime plot
-          pushViewport(viewport(x = 0.66, y = 0.98, width = 0.24, height = 0.45, just = c("left","top")))
+          pushViewport(viewport(x = 0.66, y = 0.98, width = 0.24, height = 0.405, just = c("left","top")))
           long_expr <- data.frame(
             Cell = colnames(xde_result()$expr),
             expr = as.numeric(xde_result()$expr[gene, colnames(xde_result()$expr)]),
@@ -2148,7 +2197,7 @@ dataVisualization_server <- function(input, output, session) {
           
           p3 <- ggplot(plot_df, aes(x = pseudotime, y = expr, color = Sample)) +
             scale_color_manual(values = colors_all) + 
-            theme_classic() +
+            theme_light() +
             labs(x = "Pseudotime", y = "Expression Level") + 
             theme(
               legend.title = element_text(size = 10),
@@ -2213,7 +2262,7 @@ dataVisualization_server <- function(input, output, session) {
             scale_color_viridis_c() +
             labs(x = colnames(reduced_dim)[1], 
                  y = colnames(reduced_dim)[2]) +
-            theme_minimal() +
+            theme_light() +
             facet_wrap(~ Sample, nrow = 1, drop = FALSE) +  
             {if (included_zero_value && length(setdiff(all_samples, unique(plot_df$Sample)))) {
               geom_text(
