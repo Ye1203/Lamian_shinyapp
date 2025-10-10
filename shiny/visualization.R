@@ -452,7 +452,7 @@ dataVisualization_server <- function(input, output, session) {
           
           actionButton("draw_plot", "Draw Plot", 
                        class = "btn-success", width = "100%"),
-          
+          br(),
           uiOutput("gene_tools_ui"),
 
           actionButton("save_heatmap_plot", "Save Plot", 
@@ -465,7 +465,7 @@ dataVisualization_server <- function(input, output, session) {
             "Number of Pseudotime samples:",
             value = 11,
             min = 3,
-            max = 1000,
+            max = 100,
             step = 1
           ),
          
@@ -870,7 +870,7 @@ dataVisualization_server <- function(input, output, session) {
         
         return(points)
       }
-      sample_points <- calculate_sample_points(total_points = 1000, sample_num = input$pseudotime_samples)
+      sample_points <- calculate_sample_points(total_points = 100, sample_num = input$pseudotime_samples)
       
       extract_samples <- function(col_prefix) {
         cols <- grep(paste0("^", col_prefix), colnames(df), value = TRUE)
