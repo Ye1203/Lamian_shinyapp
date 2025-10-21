@@ -391,7 +391,7 @@ dataVisualization_server <- function(input, output, session) {
     sig_genes <- rownames(stat()[stat()$fdr.overall < 0.05, ])
     fluidRow(
       column(
-        width = 3,
+        width = 5,
         wellPanel(
           style = "height: 90vh; overflow-y: auto;",
           h4("Gene List Input", class = "text-primary"),
@@ -475,7 +475,7 @@ dataVisualization_server <- function(input, output, session) {
       ),
       
       column(
-        width = 9,
+        width = 7,
         h4("Heatmap", class = "text-primary"),
         hr(),
         plotOutput("heatmap_display")  
@@ -1089,8 +1089,6 @@ dataVisualization_server <- function(input, output, session) {
             )
           )
         ),  
-        
-        hr(),
         
         h4("Sample included"),
         uiOutput("sample_selector_ui"),
