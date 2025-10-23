@@ -415,9 +415,9 @@ dataVisualization_server <- function(input, output, session) {
           radioButtons(
             "cluster_method",
             "Clustering Method:",
-            choices = c("Hierarchical" = "hierarchical", 
-                        "K-means" = "kmeans"),
-            selected = "hierarchical",
+            choices = c("K-means" = "kmeans", 
+                        "Hierarchical" = "hierarchical"),
+            selected = "kmeans",
             inline = TRUE
           ),
           
