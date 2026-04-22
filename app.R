@@ -1,9 +1,5 @@
 # Input path
 path_to_shiny <- "/path/to/Lamian_shinyapp/folder"
-
-
-
-
 options(warn = -1)
 library(shiny)
 library(shinyjs)
@@ -37,6 +33,7 @@ for (file in r_files) {
 }
 set.seed(123)
 ui <- fluidPage(
+  htmltools::findDependencies(selectizeInput("dummy", NULL, choices = NULL)),
   titlePanel("Lamian shinyapp"),
   tags$h5("A RNA-seq tool to detect conditional differences following the pseudtotime"),
   tags$h5("Made by Bingtian Ye (btye@bu.edu) in David J. Waxman's Lab"),
@@ -214,7 +211,7 @@ server <- function(input, output, session) {
       req(processedObj(), step3_result())
       fluidRow(
         column(4,
-               numericInput("non_zero_num", "Gene Filter: Minimum of Non-zero Cells", value = 100, min = 1),
+               numericInput("non_zero_num", "Gene Filter: Minimum of Non-zero Cells", value = 200, min = 1),
                numericInput("lower_quantile", "Cell Filter: Lower Pseudotime Quantile (%)", min = 0, max = 100, value = 0.01, step = 0.01),
                numericInput("upper_quantile", "Cell Filter: Upper Pseudotime Quantile (%)", min = 0, max = 100, value = 99.99, step = 0.01),
                hr(),
